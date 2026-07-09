@@ -23,7 +23,7 @@ from ai.losses import BCEWithLogits, MyLoss2, Myloss, Q_loss, Soft_Target_Cross_
 
 
 class Rubiks_3_AI:
-    def __init__(self,Mid,cube_size = 3,Activation = 'ReLU',cube = None,Batch_Normalize = False,search_mode = 'search2',residual = False,use_transformer_attention = False,transformer_attention_dim = 64,transformer_attention_token_mode = 'hidden',piece_attention_backward_chunk_size = 32,train_batch_size = None,train_state_batch_size = None,train_max_batches = None,train_recent_ratio = None,search2_value_loss_type = 'myloss2',search2_value_loss_margin = 0.2):
+    def __init__(self,Mid,cube_size = 3,Activation = 'ReLU',cube = None,Batch_Normalize = False,search_mode = 'search2',residual = False,use_transformer_attention = False,transformer_attention_dim = 64,transformer_attention_token_mode = 'hidden',piece_attention_backward_chunk_size = 32,train_batch_size = None,train_state_batch_size = None,train_max_batches = None,train_recent_ratio = None,search2_value_loss_type = 'myloss2'):
         if cube == None:
             self.cube = Rubiks_3(size = cube_size)
         else:
@@ -37,6 +37,7 @@ class Rubiks_3_AI:
         self.use_torch_training = self.use_transformer_attention
         self.requested_Mid = list(Mid)
         self.transformer_attention_dim = int(transformer_attention_dim)
+        self.transformer_attention_mps = max(1,int(transformer_attention_dim))
         self.transformer_attention_token_mode = transformer_attention_token_mode
         self.piece_attention_backward_chunk_size = int(piece_attention_backward_chunk_size)
         self.use_piece_tokens = self.use_transformer_attention and transformer_attention_token_mode in ('piece','pieces','piece_tokens')
@@ -48,18 +49,13 @@ class Rubiks_3_AI:
         self.activation = Activation
         self.ips = self.cube.ips
         self.ops = self.cube.move_len
-        if self.use_transformer_attention:
-            attention_dim = max(1,min(self.transformer_attention_dim,int(self.requested_Mid[0])))
-            self.Mid = [attention_dim] + self.requested_Mid[1:]
-        else:
-            self.Mid = self.requested_Mid
+        self.Mid = self.requested_Mid
         Mid = self.Mid
 
         self.skip_search = False
         self.skip_difference = 10.0
         self.search_mode = search_mode
         self.search2_value_loss_type = self._normalize_search2_value_loss_type(search2_value_loss_type)
-        self.search2_value_loss_margin = float(search2_value_loss_margin)
         self.value_target_gamma = (1/2) ** (1/20)
         
 
@@ -89,13 +85,15 @@ class Rubiks_3_AI:
         self.BNs = []
         
         if self.use_piece_tokens:
-            self.layers['Aff1'] = PieceTokenSelfAttention(self.ips,Mid[0],self._piece_token_feature_indices())
+            self.layers['Aff1'] = PieceTokenSelfAttention(self.ips,self.transformer_attention_mps,Mid[0],self._piece_token_feature_indices())
             self.layers['Aff1'].backward_chunk_size = self.piece_attention_backward_chunk_size
             self.attentions.append('Aff1')
+        elif self.use_transformer_attention:
+            self.layers['Aff1'] = Affine(self.ips,self.transformer_attention_mps)
         else:
             self.layers['Aff1'] = Affine(self.ips,Mid[0])
         if self.use_transformer_attention and not self.use_piece_tokens:
-            self.layers['Att1'] = Transformer_SelfAttention(Mid[0],Mid[0])
+            self.layers['Att1'] = Transformer_SelfAttention(self.transformer_attention_mps,self.transformer_attention_mps,Mid[0])
             self.attentions.append('Att1')
         if self.Batch_Normalize:
             self.layers['BN1'] = Batch_Normalization(Mid[0])
@@ -194,15 +192,14 @@ class Rubiks_3_AI:
         self.params['BO_V'] = self.value_layer.B
 
         if self.residual:
-            for key in self.params.keys():
-                if len(key) == 2:
-                    self.params[key] *= 0.7
+            self.params['WO_P'] *= 0.2
 
         if self.use_transformer_attention:
-            self.params['W1'] *= 2.0
-            self.params['WQ1'] *= 10.0
-            self.params['WK1'] *= 10.0
-            self.params['WV1'] *= 1.0
+            self.params['W1'] *= 1.0
+            self.params['WQ1'] *= 1.0
+            self.params['WK1'] *= 1.0
+            self.params['WV1'] *= 5.0
+            self.params['WM_P'] *= 0.05
             self.params['WO_V'] *= 1.0
 
     
@@ -272,11 +269,6 @@ class Rubiks_3_AI:
         self.search2_value_loss_type = self._normalize_search2_value_loss_type(loss_type)
         self.losslayer2 = self._create_search2_value_loss()
 
-    def set_search2_value_loss_margin(self, margin):
-        """Set the margin used by MyLoss2 pairwise value training."""
-        self.search2_value_loss_margin = float(margin)
-        self.losslayer2 = self._create_search2_value_loss()
-
     def _normalize_search2_value_loss_type(self, loss_type):
         normalized = str(loss_type or 'myloss2').replace('_','').replace('-','').lower()
         aliases = {
@@ -294,7 +286,7 @@ class Rubiks_3_AI:
     def _create_search2_value_loss(self):
         if self.search2_value_loss_type == 'myloss':
             return Myloss()
-        return MyLoss2(self.search2_value_loss_margin)
+        return MyLoss2()
         
         
         
@@ -343,7 +335,7 @@ class Rubiks_3_AI:
             gc.collect()
 
     def _clear_layer_cache(self, layer):
-        for attr_name in ['x','out','y','t','diffs','x_bar','train_m','train_s','tokens','Q','K','V','M']:
+        for attr_name in ['x','out','y','t','x_bar','train_m','train_s','tokens','Q','K','V','M','attended','attended_sum']:
             if hasattr(layer,attr_name):
                 setattr(layer,attr_name,None)
 
@@ -629,6 +621,10 @@ class Rubiks_3_AI:
                 dO = self.layers['Aff' + str(index)].backward(dO)
                 dO = dO + skip_grad
             return dO
+        if self.residual:
+            for block in reversed(self.trunk_blocks):
+                dO = block.backward(dO)
+            return dO
         reverse_key = list(self.layers)
         reverse_key.reverse()
         for key in reverse_key:
@@ -662,6 +658,7 @@ class Rubiks_3_AI:
             loss_inputs['indices'],
             loss_inputs['value_columns'],
             loss_inputs['value_indices'],
+            loss_inputs['value_steps_to_goal'],
         )
 
     def _build_loss_inputs(self, d_lis, transformation = 0, flip_inside = False):
@@ -671,19 +668,21 @@ class Rubiks_3_AI:
         x = np.zeros((self.ips,total_steps))
         self._fill_loss_tensors(d_lis, transformation, flip_inside, args, x)
         value_columns,value_indices = self._build_search2_value_loss_selection(d_lis,indices)
+        value_steps_to_goal = self._build_search2_value_steps_to_goal(d_lis,indices,value_columns)
         return {
             'indices': indices,
             'args': args,
             'x': x,
             'value_columns': value_columns,
             'value_indices': value_indices,
+            'value_steps_to_goal': value_steps_to_goal,
         }
 
     def _predict_loss_outputs(self, x):
         """loss 計算用に policy/value 出力をまとめて推論する。"""
         return self.predict(x,policy = True,value = True,loss = True,retain_cache = True)
 
-    def _compute_search2_losses(self, out, args, indices, value_columns = None, value_indices = None):
+    def _compute_search2_losses(self, out, args, indices, value_columns = None, value_indices = None, value_steps_to_goal = None):
         """Search2 用の policy loss と value loss を計算する。"""
         policy_loss = self.losslayer.forward(out[:-1],args,np.zeros(0),indices)
         self._search2_value_output_size = out.shape[1]
@@ -696,7 +695,15 @@ class Rubiks_3_AI:
         if value_indices is None:
             value_indices = indices
         self._search2_value_indices = value_indices
-        value_loss = self.losslayer2.forward(out[-1:,self._search2_value_columns],value_indices)
+        if self.search2_value_loss_type == 'myloss2':
+            value_loss = self.losslayer2.forward(
+                out[-1:,self._search2_value_columns],
+                value_indices,
+                value_steps_to_goal,
+                self.value_target_gamma,
+            )
+        else:
+            value_loss = self.losslayer2.forward(out[-1:,self._search2_value_columns],value_indices)
         return (policy_loss,value_loss)
 
     def _build_loss_indices(self, d_Lis):
@@ -722,6 +729,24 @@ class Rubiks_3_AI:
             total += end - start
             value_indices.append(total)
         return np.asarray(columns,dtype = 'i'), value_indices
+
+    def _build_search2_value_steps_to_goal(self, d_lis, indices, value_columns):
+        if len(value_columns) == 0:
+            return np.zeros(0,dtype = 'f')
+        steps_by_column = np.zeros(indices[-1],dtype = 'f')
+        for data_index,data_item in enumerate(d_lis):
+            start = indices[data_index]
+            end = indices[data_index + 1]
+            steps_by_column[start:end] = self._steps_to_goal_for_search2_data(data_item,end - start)
+        return steps_by_column[value_columns]
+
+    def _steps_to_goal_for_search2_data(self, data_item, expected_count):
+        steps = getattr(data_item,'steps_to_goal',None)
+        if steps is None:
+            steps = getattr(data_item,'remaining_steps',None)
+        if steps is None or len(steps) != expected_count:
+            steps = tuple(range(expected_count - 1,-1,-1))
+        return np.asarray(steps,dtype = 'f')
 
     def _uses_search2_value_loss_for_sample(self, data_item):
         """MyLoss skips value training for data solved by MyLoss2; MyLoss2 uses all data."""
@@ -1695,6 +1720,7 @@ class Rubiks_3_AI:
             out[-1],
             loss_inputs['value_indices'],
             loss_inputs['value_columns'],
+            loss_inputs['value_steps_to_goal'],
         )
         total_loss = policy_loss + value_loss
         total_loss.backward()
@@ -1727,7 +1753,7 @@ class Rubiks_3_AI:
             return torch.zeros((), dtype = torch.float32, device = device)
         return total_loss
 
-    def _torch_search2_value_loss(self, values, indices, value_columns = None):
+    def _torch_search2_value_loss(self, values, indices, value_columns = None, value_steps_to_goal = None):
         if value_columns is not None:
             if len(value_columns) == 0:
                 return torch.zeros((), dtype = values.dtype, device = values.device)
@@ -1735,7 +1761,7 @@ class Rubiks_3_AI:
             values = values.index_select(0,column_tensor)
         if self.search2_value_loss_type == 'myloss':
             return self._torch_search2_value_loss_softmax(values,indices)
-        return self._torch_search2_value_loss_pairwise(values,indices)
+        return self._torch_search2_value_loss_distance(values,indices,value_steps_to_goal)
 
     def _torch_search2_value_loss_softmax(self, values, indices):
         total_loss = torch.zeros((), dtype = values.dtype, device = values.device)
@@ -1751,16 +1777,24 @@ class Rubiks_3_AI:
             return torch.zeros((), dtype = values.dtype, device = values.device)
         return total_loss
 
-    def _torch_search2_value_loss_pairwise(self, values, indices):
+    def _torch_search2_value_loss_distance(self, values, indices, value_steps_to_goal = None):
+        if values.numel() == 0:
+            return torch.zeros((), dtype = values.dtype, device = values.device)
+        if value_steps_to_goal is None:
+            value_steps_to_goal = torch.zeros_like(values)
+        else:
+            value_steps_to_goal = torch.as_tensor(value_steps_to_goal, dtype = values.dtype, device = values.device)
+        gamma = torch.as_tensor(self.value_target_gamma, dtype = values.dtype, device = values.device)
         total_loss = torch.zeros((), dtype = values.dtype, device = values.device)
         has_loss = False
         for index in range(len(indices) - 1):
             start = indices[index]
             end = indices[index + 1]
-            if end <= start + 1:
+            if end <= start:
                 continue
-            diffs = values[start + 1:end] - values[start:end - 1]
-            total_loss = total_loss + F_torch.softplus(self.search2_value_loss_margin - diffs).sum()
+            targets = torch.pow(gamma,value_steps_to_goal[start:end])
+            targets = targets / torch.sum(targets)
+            total_loss = total_loss - torch.sum(targets * F_torch.log_softmax(values[start:end],dim = 0))
             has_loss = True
         if not has_loss:
             return torch.zeros((), dtype = values.dtype, device = values.device)
@@ -2132,11 +2166,12 @@ class Rubiks_3_AI:
         """Torch 推論用の単層 self-attention。"""
         q = params['WQ' + suffix] @ out
         k = params['WK' + suffix] @ out
-        v = params['WV' + suffix] @ out
+        v = out
         scale = 1.0 / math.sqrt(max(q.shape[0],1))
         score = scale * torch.einsum('ib,jb->bij',q,k)
         attention = torch.softmax(score,dim = -1)
-        return torch.einsum('bij,jb->ib',attention,v)
+        attended = torch.einsum('bij,jb->ib',attention,v)
+        return params['WV' + suffix] @ attended
 
     def _torch_piece_token_attention(self, X, params, suffix = '1'):
         tokens = []
@@ -2146,12 +2181,12 @@ class Rubiks_3_AI:
         token_tensor = torch.stack(tokens, dim = 0)
         q = torch.einsum('od,pdb->pob',params['WQ' + suffix],token_tensor)
         k = torch.einsum('od,pdb->pob',params['WK' + suffix],token_tensor)
-        v = torch.einsum('od,pdb->pob',params['WV' + suffix],token_tensor)
+        v = token_tensor
         scale = 1.0 / math.sqrt(max(q.shape[1],1))
         score = scale * torch.einsum('pdb,qdb->bpq',q,k)
         attention = torch.softmax(score,dim = -1)
         attended = torch.einsum('bpq,qdb->pdb',attention,v)
-        return torch.sum(attended,dim = 0) + params['B' + suffix].unsqueeze(1)
+        return params['WV' + suffix] @ torch.sum(attended,dim = 0) + params['B' + suffix].unsqueeze(1)
 
     def _torch_piece_feature_index_tensors(self, suffix, device):
         cache_key = (suffix,str(device))

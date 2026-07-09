@@ -9,7 +9,8 @@ from functools import reduce
 import numpy as np
 
 from core.scramble_selector import ScrambleSelector
-from cube.rubiks_cube import make_myperm_key
+from core.myperm_effects import rename_myperms_by_effect
+from core.myperm_keys import make_myperm_key, normalize_myperm_name, single_move_myperm_name
 
 
 PYRAMINX_FACES = ("U", "L", "R", "B")
@@ -62,6 +63,7 @@ class PyraminxCube:
         self._init_groups()
         self.state_0 = np.array([self.index_to_face[i] for i in range(self.sticker_num)])
         self.state = self.state_0.copy()
+        rename_myperms_by_effect(self)
         self._init_feature_layout()
         self.perfect_data = self.makedata()
         self._init_group_values()
@@ -249,7 +251,7 @@ class PyraminxCube:
         self.myperms = {}
         self.single_and_rotate = []
         for move_key in self.move_keys:
-            key = make_myperm_key("SingleMove-" + move_key, 0)
+            key = make_myperm_key(single_move_myperm_name(move_key), 0)
             self.myperms[key] = (move_key,)
             self.single_and_rotate.append(key)
         self.myperms2 = {}
@@ -316,6 +318,7 @@ class PyraminxCube:
 
 
     def _add_myperm2(self, name, moves, add_inverse = True):
+        name = normalize_myperm_name(name)
         normalized_moves = self.normalize_move_sequence(moves)
         self.myperms2[name] = normalized_moves
         if add_inverse:

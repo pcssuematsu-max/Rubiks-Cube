@@ -6,65 +6,35 @@ from functools import reduce
 import numpy as np
 
 from core.cube_constants import AB, R_Nums
+from core.myperm_keys import (
+    format_myperm_key,
+    make_myperm_key,
+    myperm_base_key,
+    myperm_transform_index,
+    normalize_myperm_registry,
+    single_move_myperm_name,
+)
+from core.myperm_effects import rename_myperms_by_effect
 from core.scramble_selector import ScrambleSelector
 from cube.move_sequence_ops import MoveSequenceOps
 
 
-def make_myperm_key(base_key, transform_index):
-    """Return the expanded myperm key as (base name, transformation index)."""
-    return (base_key, int(transform_index))
-
-
-def _split_legacy_myperm_key(key):
-    """Split a legacy string myperm key into (base name, transform suffix digits)."""
-    if not isinstance(key, str):
-        return key, None
-    suffix_start = len(key)
-    while suffix_start > 0 and key[suffix_start - 1].isdigit():
-        suffix_start -= 1
-    if suffix_start == len(key):
-        return key, None
-    return key[:suffix_start], key[suffix_start:]
-
-
-def myperm_base_key(key):
-    """Return the base name of a myperm key."""
-    if isinstance(key, tuple):
-        return key[0]
-    base_key, _ = _split_legacy_myperm_key(key)
-    return base_key
-
-
-def myperm_transform_index(key):
-    """Return the transformation index for an expanded myperm key."""
-    if isinstance(key, tuple):
-        return key[1]
-    _, suffix = _split_legacy_myperm_key(key)
-    return int(suffix) if suffix is not None else None
-
-
-def format_myperm_key(key):
-    """Format a myperm key for display."""
-    if isinstance(key, tuple):
-        return f"{key[0]}#{key[1]:02d}"
-    return key
-
-
-RUBIKS_FACE_LABEL_BY_COLOR = {
-    'W': 'U',
-    'Y': 'D',
-    'G': 'F',
-    'B': 'B',
-    'R': 'R',
-    'O': 'L',
+RUBIKS_MOVE_FACE_LABELS_BY_INDEX = ('U', 'D', 'F', 'B', 'L', 'R')
+RUBIKS_SOLVED_COLORS_BY_FACE_INDEX = ('R', 'O', 'Y', 'W', 'G', 'B')
+RUBIKS_COLOR_NAMES = {
+    'R': 'Red',
+    'O': 'Orange',
+    'Y': 'Yellow',
+    'W': 'White',
+    'G': 'Green',
+    'B': 'Blue',
+    'X': 'Masked',
 }
-
-RUBIKS_FACE_LABELS_BY_INDEX = ['R', 'L', 'D', 'U', 'F', 'B']
 RUBIKS_AXIS_INFO = {
     'U': {'horizontal': ('R', 'L', True),  'vertical': ('F', 'B', True)},
-    'D': {'horizontal': ('R', 'L', True),  'vertical': ('F', 'B', False)},
+    'D': {'horizontal': ('R', 'L', False), 'vertical': ('F', 'B', True)},
     'F': {'horizontal': ('R', 'L', True),  'vertical': ('U', 'D', False)},
-    'B': {'horizontal': ('L', 'R', True),  'vertical': ('U', 'D', False)},
+    'B': {'horizontal': ('L', 'R', False), 'vertical': ('U', 'D', True)},
     'R': {'horizontal': ('B', 'F', True),  'vertical': ('U', 'D', False)},
     'L': {'horizontal': ('F', 'B', True),  'vertical': ('U', 'D', False)},
 }
@@ -128,6 +98,7 @@ class Rubiks_3:
 
         self._init_cube_state_and_moves()
         self._init_color_keys_and_groups()
+        rename_myperms_by_effect(self)
         self._init_myperms_index()
         self._init_single_move_and_rotate()
         self.scramble_selector = ScrambleSelector(self)
@@ -240,11 +211,19 @@ class Rubiks_3:
         self.myperms = {}
         self._add_single_moves_to_myperms()
         self.myperms2 = {}
+        self.myperms2_source_aliases = {}
         self._init_group_indices()
+
+    def _add_myperm2(self, name, moves, legacy = None):
+        """Register one source myperm while keeping its previous source name."""
+        self.myperms2[name] = moves
+        if legacy and legacy != name:
+            self.myperms2_source_aliases[legacy] = name
+        return name
 
     def _add_single_moves_to_myperms(self):
         for m in self.move_keys:
-            self.myperms[make_myperm_key('SingleMove-' + m, 0)] = (m,)
+            self.myperms[make_myperm_key(single_move_myperm_name(m), 0)] = (m,)
 
         self.myperms[make_myperm_key('Rotate6A-00', 0)] = (" x "," z ")
         self.myperms[make_myperm_key('Rotate6A-01', 0)] = (" x "," z'")
@@ -585,8 +564,8 @@ class Rubiks_3:
 
             self.myperms2['SideCommutator08-'] = (" F2","2U "," F2","2U'") 
             self.myperms2['SideCommutator09-'] = (" F2","2U'"," F2","2U ") 
-            self.myperms2['SideCommutator08-'] = ("2U "," F2","2U'"," F2") 
-            self.myperms2['SideCommutator09-'] = ("2U'"," F2","2U "," F2") 
+            self.myperms2['SideCommutator10-'] = ("2U "," F2","2U'"," F2")
+            self.myperms2['SideCommutator11-'] = ("2U'"," F2","2U "," F2")
             self.myperms2['SideCommutator12-'] = (" F ","2U "," F2","2U'"," F ") 
             self.myperms2['SideCommutator13-'] = (" F ","2U'"," F2","2U "," F ")     
             self.myperms2['SideCommutator14-'] = (" F'","2U "," F2","2U'"," F'") 
@@ -607,10 +586,10 @@ class Rubiks_3:
             self.myperms2['MidCommutator02'] = (" F2"," E "," F'"," E'"," F'")
             self.myperms2['MidCommutator03'] = (" F'"," E "," F'"," E'"," F2")
 
-            self.myperms2['MidCommutator00'] = (" F "," E2"," F'"," E2")
-            self.myperms2['MidCommutator01'] = (" E2"," F'"," E2"," F ")
-            self.myperms2['MidCommutator02'] = (" F2"," E2"," F'"," E2"," F'")
-            self.myperms2['MidCommutator03'] = (" F'"," E2"," F'"," E2"," F2")
+            self.myperms2['MidCommutator04'] = (" F "," E2"," F'"," E2")
+            self.myperms2['MidCommutator05'] = (" E2"," F'"," E2"," F ")
+            self.myperms2['MidCommutator06'] = (" F2"," E2"," F'"," E2"," F'")
+            self.myperms2['MidCommutator07'] = (" F'"," E2"," F'"," E2"," F2")
 
 
 
@@ -622,10 +601,10 @@ class Rubiks_3:
         # - family 文字は位置関係、末尾 A/B/C... は向き違い。
         # - MidEdgeFlip2/4-* は midedge の flip 用 family。
         if self.size % 2 == 1:           
-            self.myperms2['MidEdge3-I-A'] = (' M ', ' D2', " M'", ' D2')
-            self.myperms2['MidEdge3-I-B'] = (" U'", " M'", ' U ', ' F2', " U'", ' M ', ' U ', ' F2')
-            self.myperms2['MidEdge3-I-C'] = (" F'", " E'", " F'", ' D2', ' F ', ' E ', " F'", ' D2', ' F2')
-            self.myperms2['MidEdge3-I-D'] = (' D2', " B'", ' M ', ' B ', ' D2', " B'", " M'", ' B ')
+            self._add_myperm2('ME3[DB>DF>UF]', (' M ', ' D2', " M'", ' D2'), legacy = 'MidEdge3-I-A')
+            self._add_myperm2('ME3[DB>FD>FU]', (" U'", " M'", ' U ', ' F2', " U'", ' M ', ' U ', ' F2'), legacy = 'MidEdge3-I-B')
+            self._add_myperm2('ME3[DB>FD>UF]', (" F'", " E'", " F'", ' D2', ' F ', ' E ', " F'", ' D2', ' F2'), legacy = 'MidEdge3-I-C')
+            self._add_myperm2('ME3[DB>DF>FU]', (' D2', " B'", ' M ', ' B ', ' D2', " B'", " M'", ' B '), legacy = 'MidEdge3-I-D')
 
             self.myperms2['MidEdge4-II-A'] = (' M2', ' D2', ' M2', " D'", " M'", " D'", ' B2', ' D ', ' M ', " D'", ' B2')
             self.myperms2['MidEdge4-II-B'] = (" U'", " M'", ' U ', ' F2', " U'", ' M ', ' U ', " M'", " U'", " M'", ' U ', ' F2', " U'", ' M ', " U'", ' M ', ' U2')
@@ -645,15 +624,15 @@ class Rubiks_3:
 
 
 
-            self.myperms2['MidEdge3-U-A'] = (" M2"," U'"," M "," U2"," M'"," U'"," M2")
-            self.myperms2['MidEdge3-U-B'] = (" M ", ' U ', " M'", ' U2', ' M ', ' U ', " M'")
-            self.myperms2['MidEdge3-U-C'] = (' S2', " U'", ' R2', ' U ', " S'", " U'", ' R2', ' U ', " S'")
-            self.myperms2['MidEdge3-U-D'] = (" S'", ' U ', ' L2', " U'", " S'", ' U ', ' L2', " U'", ' S2')
+            self._add_myperm2('ME3[UF>UL>UR]', (" M2"," U'"," M "," U2"," M'"," U'"," M2"), legacy = 'MidEdge3-U-A')
+            self._add_myperm2('ME3[UF>LU>RU]', (" M ", ' U ', " M'", ' U2', ' M ', ' U ', " M'"), legacy = 'MidEdge3-U-B')
+            self._add_myperm2('ME3[UF>UL>RU]', (' S2', " U'", ' R2', ' U ', " S'", " U'", ' R2', ' U ', " S'"), legacy = 'MidEdge3-U-C')
+            self._add_myperm2('ME3[UF>LU>UR]', (" S'", ' U ', ' L2', " U'", " S'", ' U ', ' L2', " U'", ' S2'), legacy = 'MidEdge3-U-D')
 
-            self.myperms2['MidEdge3-V-A'] = (" D'", ' M ', ' D2', " M'", " D'")
-            self.myperms2['MidEdge3-V-B'] = (" M'", ' D ', " M'", ' D2', ' M ', ' D ', ' M ')
-            self.myperms2['MidEdge3-V-C'] = (' U ', ' L2', " U'", ' S ', ' U ', ' L2', " U'", " S'")
-            self.myperms2['MidEdge3-V-D'] = (" S'", " U'", ' R2', ' U ', ' S ', " U'", ' R2', ' U ')
+            self._add_myperm2('ME3[DL>DR>UF]', (" D'", ' M ', ' D2', " M'", " D'"), legacy = 'MidEdge3-V-A')
+            self._add_myperm2('ME3[DL>DR>FU]', (" M'", ' D ', " M'", ' D2', ' M ', ' D ', ' M '), legacy = 'MidEdge3-V-B')
+            self._add_myperm2('ME3[DL>RD>UF]', (' U ', ' L2', " U'", ' S ', ' U ', ' L2', " U'", " S'"), legacy = 'MidEdge3-V-C')
+            self._add_myperm2('ME3[DL>RD>FU]', (" S'", " U'", ' R2', ' U ', ' S ', " U'", ' R2', ' U '), legacy = 'MidEdge3-V-D')
 
 
             self.myperms2['MidEdge4-UU-A'] = (" M'", " U'", ' B2', ' U ', " M'", " U'", ' B2', ' M2', ' U2', ' M2', " U'", ' M2')
@@ -667,41 +646,41 @@ class Rubiks_3:
             self.myperms2['MidEdge4-VV-C'] = (" S'", ' U ', ' R2', " U'", ' S ', ' U ', ' R2', ' S ', ' U2', " S'", ' U ')
             self.myperms2['MidEdge4-VV-D'] = (' S ', " U'", ' S ', ' U2', " S'", " U'", ' S2', ' U ', ' R2', " U'", ' S ', ' U ', ' R2', " U'")
 
-            self.myperms2['MidEdge3-P-A'] = (' S ', ' R ', ' E ', ' R2', " E'", ' R ', " S'")
-            self.myperms2['MidEdge3-P-B'] = (" R'"," E "," R2"," E'"," R "," S "," R2"," S'")
-            self.myperms2['MidEdge3-P-C'] = (' S ', " L'", ' U2', ' L ', " S'", " L'", ' U2', ' L ')
-            self.myperms2['MidEdge3-P-D'] = (" L'", ' U ', " M'", " U'", ' L ', ' U ', ' M ', " U'")
-            self.myperms2['MidEdge3-P-E'] = self.invert_moves(self.myperms2['MidEdge3-P-A'])
-            self.myperms2['MidEdge3-P-F'] = self.invert_moves(self.myperms2['MidEdge3-P-B'])
-            self.myperms2['MidEdge3-P-G'] = self.invert_moves(self.myperms2['MidEdge3-P-C'])
-            self.myperms2['MidEdge3-P-H'] = self.invert_moves(self.myperms2['MidEdge3-P-D'])
+            self._add_myperm2('ME3[FL>LU>RU]', (' S ', ' R ', ' E ', ' R2', " E'", ' R ', " S'"), legacy = 'MidEdge3-P-A')
+            self._add_myperm2('ME3[FL>UL>UR]', (" R'"," E "," R2"," E'"," R "," S "," R2"," S'"), legacy = 'MidEdge3-P-B')
+            self._add_myperm2('ME3[FL>LU>UR]', (' S ', " L'", ' U2', ' L ', " S'", " L'", ' U2', ' L '), legacy = 'MidEdge3-P-C')
+            self._add_myperm2('ME3[FL>UL>RU]', (" L'", ' U ', " M'", " U'", ' L ', ' U ', ' M ', " U'"), legacy = 'MidEdge3-P-D')
+            self._add_myperm2('ME3[FL>RU>LU]', self.invert_moves(self.myperms2['ME3[FL>LU>RU]']), legacy = 'MidEdge3-P-E')
+            self._add_myperm2('ME3[FL>UR>UL]', self.invert_moves(self.myperms2['ME3[FL>UL>UR]']), legacy = 'MidEdge3-P-F')
+            self._add_myperm2('ME3[FL>UR>LU]', self.invert_moves(self.myperms2['ME3[FL>LU>UR]']), legacy = 'MidEdge3-P-G')
+            self._add_myperm2('ME3[FL>RU>UL]', self.invert_moves(self.myperms2['ME3[FL>UL>RU]']), legacy = 'MidEdge3-P-H')
 
-            self.myperms2['MidEdge3-R-A'] = (' L2', " D'", ' M ', ' D2', " M'", " D'", ' L2')
-            self.myperms2['MidEdge3-R-B'] = (' S2', ' R ', ' F ', " R'", ' S2', ' R ', " F'", " R'")
-            self.myperms2['MidEdge3-R-C'] = (' L2', ' U ', ' L2', " U'", ' S ', ' U ', ' L2', " U'", " S'", ' L2')
-            self.myperms2['MidEdge3-R-D'] = (" D'", ' M ', " D'", " S'", ' D2', ' S ', " D'", " M'", ' D ')
-            self.myperms2['MidEdge3-R-E'] = self.invert_moves(self.myperms2['MidEdge3-R-A'])
-            self.myperms2['MidEdge3-R-F'] = self.invert_moves(self.myperms2['MidEdge3-R-B'])
-            self.myperms2['MidEdge3-R-G'] = self.invert_moves(self.myperms2['MidEdge3-R-C'])
-            self.myperms2['MidEdge3-R-H'] = self.invert_moves(self.myperms2['MidEdge3-R-D'])
+            self._add_myperm2('ME3[DR>UF>UL]', (' L2', " D'", ' M ', ' D2', " M'", " D'", ' L2'), legacy = 'MidEdge3-R-A')
+            self._add_myperm2('ME3[DR>FU>UL]', (' S2', ' R ', ' F ', " R'", ' S2', ' R ', " F'", " R'"), legacy = 'MidEdge3-R-B')
+            self._add_myperm2('ME3[DR>FU>LU]', (' L2', ' U ', ' L2', " U'", ' S ', ' U ', ' L2', " U'", " S'", ' L2'), legacy = 'MidEdge3-R-C')
+            self._add_myperm2('ME3[DR>UF>LU]', (" D'", ' M ', " D'", " S'", ' D2', ' S ', " D'", " M'", ' D '), legacy = 'MidEdge3-R-D')
+            self._add_myperm2('ME3[DR>UL>UF]', self.invert_moves(self.myperms2['ME3[DR>UF>UL]']), legacy = 'MidEdge3-R-E')
+            self._add_myperm2('ME3[DR>UL>FU]', self.invert_moves(self.myperms2['ME3[DR>FU>UL]']), legacy = 'MidEdge3-R-F')
+            self._add_myperm2('ME3[DR>LU>FU]', self.invert_moves(self.myperms2['ME3[DR>FU>LU]']), legacy = 'MidEdge3-R-G')
+            self._add_myperm2('ME3[DR>LU>UF]', self.invert_moves(self.myperms2['ME3[DR>UF>LU]']), legacy = 'MidEdge3-R-H')
 
 
-            self.myperms2['MidEdge3-N-A'] = (' U ', " L'", ' E2', ' L ', " U'", " L'", ' E2', ' L ')
-            self.myperms2['MidEdge3-N-B'] = (" R'", ' S2', ' R ', ' F ', " R'", ' S2', ' R ', " F'")
-            self.myperms2['MidEdge3-N-C'] = (' R ', ' S ', " R'", ' F ', ' R ', " S'", " R'", " F'")
-            self.myperms2['MidEdge3-N-D'] = (' E ', " L'", ' B ', " M'", ' B2', ' M ', ' B ', ' L ', " E'")
+            self._add_myperm2('ME3[RF>FU>LU]', (' U ', " L'", ' E2', ' L ', " U'", " L'", ' E2', ' L '), legacy = 'MidEdge3-N-A')
+            self._add_myperm2('ME3[RF>UF>LU]', (" R'", ' S2', ' R ', ' F ', " R'", ' S2', ' R ', " F'"), legacy = 'MidEdge3-N-B')
+            self._add_myperm2('ME3[RF>UF>UL]', (' R ', ' S ', " R'", ' F ', ' R ', " S'", " R'", " F'"), legacy = 'MidEdge3-N-C')
+            self._add_myperm2('ME3[RF>FU>UL]', (' E ', " L'", ' B ', " M'", ' B2', ' M ', ' B ', ' L ', " E'"), legacy = 'MidEdge3-N-D')
 
             
-            self.myperms2['MidEdge3-Q-A'] = (' U ', ' L ', ' E2', " L'", " U'", ' L ', ' E2', " L'")
-            self.myperms2['MidEdge3-Q-B'] = (" L'", ' B ', " M'", ' B2', ' M ', ' B ', ' L ')
-            self.myperms2['MidEdge3-Q-C'] = (" F'", ' E2', ' F ', " U'", " F'", ' E2', ' F ', ' U ')
-            self.myperms2['MidEdge3-Q-D'] = (" S'", ' R ', " D'", ' M ', ' D2', " M'", " D'", " R'", ' S ')
+            self._add_myperm2('ME3[BR>UF>UL]', (' U ', ' L ', ' E2', " L'", " U'", ' L ', ' E2', " L'"), legacy = 'MidEdge3-Q-A')
+            self._add_myperm2('ME3[BR>FU>UL]', (" L'", ' B ', " M'", ' B2', ' M ', ' B ', ' L '), legacy = 'MidEdge3-Q-B')
+            self._add_myperm2('ME3[BR>FU>LU]', (" F'", ' E2', ' F ', " U'", " F'", ' E2', ' F ', ' U '), legacy = 'MidEdge3-Q-C')
+            self._add_myperm2('ME3[BR>UF>LU]', (" S'", ' R ', " D'", ' M ', ' D2', " M'", " D'", " R'", ' S '), legacy = 'MidEdge3-Q-D')
 
 
-            self.myperms2['MidEdge3-Y-A'] = (" S2"," L'"," E "," R "," U'"," R'"," E'"," R "," U "," R'"," L "," S2")
-            self.myperms2['MidEdge3-Y-B'] = (' E2', ' R ', " B'", " M'", ' B2', ' M ', " B'", " R'", ' E2')
-            self.myperms2['MidEdge3-O-A'] = (" R'", ' S ', ' D ', ' R2', " D'", " S'", ' D ', ' R2', " D'", ' R ')
-            self.myperms2['MidEdge3-O-B'] = (' B ', " L'", ' S ', ' L2', " S'", " L'", " B'")
+            self._add_myperm2('ME3[RF>FU>UR]', (" S2"," L'"," E "," R "," U'"," R'"," E'"," R "," U "," R'"," L "," S2"), legacy = 'MidEdge3-Y-A')
+            self._add_myperm2('ME3[RF>UF>RU]', (' E2', ' R ', " B'", " M'", ' B2', ' M ', " B'", " R'", ' E2'), legacy = 'MidEdge3-Y-B')
+            self._add_myperm2('ME3[BR>DF>LU]', (" R'", ' S ', ' D ', ' R2', " D'", " S'", ' D ', ' R2', " D'", ' R '), legacy = 'MidEdge3-O-A')
+            self._add_myperm2('ME3[DR>FL>BU]', (' B ', " L'", ' S ', ' L2', " S'", " L'", " B'"), legacy = 'MidEdge3-O-B')
 
 
             self.myperms2['MidEdge4-Z-A'] = (" M2"," U'"," F2"," M2"," F2"," M2"," U "," M2")
@@ -825,6 +804,7 @@ class Rubiks_3:
 
 
             self.myperms2['Wing3-Parallel-K00-'] = ('2B2', ' R2', '2B ', ' R2', "2F'", ' L2', '2B2', ' L2', ' U2', '2F ', ' U2', '2B ')
+            self.myperms2['Wing3-Parallel-K01-'] = ('2F ', ' U2', "2F'", ' L2', "2F'", ' L2', '2F ', ' L2', '2B ', ' L2', "2B'", ' U2')
 
 
             self.myperms2['Wing3-Parallel2Plus1-B00-'] = (' U2', " B'", "2U'", ' B ', ' U2', " B'", '2U ', ' B ')
@@ -1096,36 +1076,14 @@ class Rubiks_3:
 
             #('2L2', ' F2', ' D2', "2R'", ' D2', ' B2', '2L2', ' B2', '2R ', ' D2', "2L'", "2R'", ' D2', '2R ', ' F2')
 
-
-
-
-            #self.myperms2['WingSwapSkew-C'] = swapc
-            #self.myperms2['WingSwapSkew-D'] = swapd
-            #self.myperms2['WingSwapSkew-Ex'] = swapex
-            #self.myperms2['WingSwapSkew-Ey'] = swapey
-            #self.myperms2['WingSwapSkew-Fx'] = swapfx
-            #self.myperms2['WingSwapSkew-Fy'] = swapfy
-            #self.myperms2['WingSwapSkew-G'] = swapg
-            #self.myperms2['WingSwapSkew-H'] = swaph
-
-            self.myperms2['WingSwapSkewViaEdge-XK00-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K00-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK01-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K01-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK02-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K02-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK03-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K03-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK04-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K04-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK05-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K05-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK06-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K06-'] + perm_kB)
-            self.myperms2['WingSwapSkewViaEdge-XK07-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K07-'] + perm_kB)
-
-            self.myperms2['WingSwapSkewViaEdge-XK08-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K00-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK09-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K01-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK10-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K02-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK11-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K03-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK12-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K04-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK13-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K05-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK14-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K06-'] + perm_kC)
-            self.myperms2['WingSwapSkewViaEdge-XK15-'] = self.simplify(self.myperms2['Wing3-SameEdgePairPlus1-K07-'] + perm_kC)
-            
+            self.myperms2['WingSwapSkew-C'] = swapc
+            self.myperms2['WingSwapSkew-D'] = swapd
+            self.myperms2['WingSwapSkew-Ex'] = swapex
+            self.myperms2['WingSwapSkew-Ey'] = swapey
+            self.myperms2['WingSwapSkew-Fx'] = swapfx
+            self.myperms2['WingSwapSkew-Fy'] = swapfy
+            self.myperms2['WingSwapSkew-G'] = swapg
+            self.myperms2['WingSwapSkew-H'] = swaph            
             
             self.myperms2['L2NA-'] = ('2F2', ' R2', "2F'", ' U2', "2F'", ' U2', ' R2', "2F'", ' R2', '2F ', ' R2', "2F'", ' R2', '2F2', ' R2')
             self.myperms2['L2NA1-'] = ('2B2', ' D2', '2F ', ' U2', '2B ', ' L2', "2F'", ' L2', ' U2', "2B'", ' R2', '2F ', ' R2', ' D2', '2B2')
@@ -1203,16 +1161,10 @@ class Rubiks_3:
             self.myperms2['EdgePK-A08-'] = ('2B2', ' R2', ' D ', '2L ', " D'", ' R2', ' D ', "2L'", " D'", '2B2')
             self.myperms2['EdgePK-A09-'] = ('2B2', ' D ', '2L ', " D'", ' R2', ' D ', "2L'", " D'", ' R2', '2B2')
                         
-            self.myperms2['EdgePK-D00-'] = (" L2","2F'", ' L ', '2D ', " L'", ' U2', ' L ', "2D'", " L'", ' U2', '2F '," L2")
-            self.myperms2['EdgePK-D01-'] = (" L2","2F'", ' U2', ' L ', '2D ', " L'", ' U2', ' L ', "2D'", " L'", '2F '," L2")
-            self.myperms2['EdgePK-D02-'] = (" L2","2F'", " L'", '2U ', ' L ', ' U2', " L'", "2U'", ' L ', ' U2', '2F '," L2")
-            self.myperms2['EdgePK-D03-'] = (" L2","2F'", ' U2', " L'", '2U ', ' L ', ' U2', " L'", "2U'", ' L ', '2F '," L2")
-            self.myperms2['EdgePK-D04-'] = (" R2",'2F2', ' R2', " D'", "2L'", ' D ', ' R2', " D'", '2L ', ' D ', '2F2'," R2")
-            self.myperms2['EdgePK-D05-'] = (" R2",'2F2', " D'", "2L'", ' D ', ' R2', " D'", '2L ', ' D ', ' R2', '2F2'," R2")
-            self.myperms2['EdgePK-D06-'] = (" R2",'2F2', ' R2', ' D ', "2R'", " D'", ' R2', ' D ', '2R ', " D'", '2F2'," R2")
-            self.myperms2['EdgePK-D07-'] = (" R2",'2F2', ' D ', "2R'", " D'", ' R2', ' D ', '2R ', " D'", ' R2', '2F2'," R2")
-            self.myperms2['EdgePK-D08-'] = (" R2",'2B2', ' R2', ' D ', '2L ', " D'", ' R2', ' D ', "2L'", " D'", '2B2'," R2")
-            self.myperms2['EdgePK-D09-'] = (" R2",'2B2', ' D ', '2L ', " D'", ' R2', ' D ', "2L'", " D'", ' R2', '2B2'," R2")
+            self.myperms2['EdgePK-D00-'] = ('2B2', " U'", '2R ', ' B2', "2R'", ' U ', '2B2', " U'", '2R ', ' B2', "2R'", ' U ')
+            self.myperms2['EdgePK-D01-'] = (" U'", '2R ', ' B2', "2R'", ' U ', '2B2', " U'", '2R ', ' B2', "2R'", ' U ', "2B2")
+            self.myperms2['EdgePK-D02-'] = ('2B2', ' U2', '2F ', ' U2', "2F'", ' U2', '2B2', ' U2', '2F ', ' U2', "2F'", ' U2')
+            self.myperms2['EdgePK-D03-'] = (' U2', '2F ', ' U2', "2F'", ' U2', '2B2', ' U2', '2F ', ' U2', "2F'", ' U2', "2B2")
 
 
 
@@ -1291,72 +1243,71 @@ class Rubiks_3:
         self.myperms2['E-Perm'] = (" R "," B'"," R'"," F "," R "," B "," R'"," F'"," R "," B "," R'"," F "," R "," B'"," R'"," F'")
         self.myperms2['X-Perm-A'] = (" U'", ' L2', ' F2', ' B2', ' R2', " D'", ' R2', ' B2', ' F2', ' L2')
         self.myperms2['X-Perm-B'] = (" L "," F2"," R2"," D2"," R "," D2"," R "," F2"," L2"," U2"," L "," U2")
-        self.myperms2['X-Perm-C'] = (' R ', ' B ', " L'", " B'", " R'", ' B ', ' L ', ' B2', ' R ', ' B ', " L'", " B'", " R'", ' B ', ' L ')
+        self.myperms2['X-Perm-C'] = (" F ", ' R2', ' F ', ' U2', " F'", ' R2', ' D2', ' B ', ' L2', " B'", ' D2', " F'")
 
         self.myperms2['X-Perm-D'] = (' R2', ' B2', " D'", ' B2', ' R2', ' L2', ' F2', " U'", ' F2', ' L2')
         self.myperms2['X-Perm-E'] = (" F'",) + (" R "," U "," R'"," U'") * 3 + (" F ",)
-        self.myperms2['X-Perm-F'] = (' U ', " F'", " U'", " B'", ' U ', ' F ', " U'", ' B2', " U'", ' F ', ' U ', " B'", " U'", " F'", ' U ')
+        self.myperms2['X-Perm-F'] = (" F'", ' R2', ' F ', ' U2', " F'", ' R2', ' D2', ' B ', ' L2', " B'", ' D2', " F ")        
 
         self.myperms2['X-Perm-G'] = (' R2', ' D ', ' U ', ' R2', ' F2', ' L2', ' B2', ' D ', ' U ', ' B2', ' L2', ' F2')
-        
 
         
 
-        self.myperms2['CornerTwist-A'] = (" R'"," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"," R2")
-        self.myperms2['CornerTwist-B'] = (" U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"," R ")
-        self.myperms2['CornerTwist-C'] = (" R "," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'")
-        self.myperms2['CornerTwist-D'] = (' B ', " L'", " B'", ' R ', ' B ', ' L ', " B'", ' U2', ' R ', ' D ', " R'", ' U2', ' R ', " D'", ' R2')
-        self.myperms2['CornerTwist-E'] = (" R'", ' F ', ' R ', ' B ', " R'", " F'", ' R ', ' B2', " D'", ' B ', ' U2', " B'", ' D ', ' B ', ' U2')
-        self.myperms2['CornerTwist-F'] = (' R2', ' B ', " L'", ' B2', ' U ', " F'", " U'", ' B ', ' U ', ' F ', " U'", ' R2', ' B ', ' L ', " B'")
-        self.myperms2['CornerTwist-F01-'] = self.invert_moves(self.myperms2['CornerTwist-F'])
+        self._add_myperm2('C2[UBR>BRU;ULB>BUL]', (" R'"," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"," R2"), legacy = 'CornerTwist-A')
+        self._add_myperm2('C2[ULB>BUL;URF>RFU]', (" U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"," R "), legacy = 'CornerTwist-B')
+        self._add_myperm2('C2[DFR>FRD;ULB>BUL]', (" R "," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"), legacy = 'CornerTwist-C')
+        self._add_myperm2('C3[UBR>BRU;UFL>FLU;URF>RFU]', (' B ', " L'", " B'", ' R ', ' B ', ' L ', " B'", ' U2', ' R ', ' D ', " R'", ' U2', ' R ', " D'", ' R2'), legacy = 'CornerTwist-D')
+        self._add_myperm2('C3[DRB>RBD;UBR>BRU;UFL>FLU]', (" R'", ' F ', ' R ', ' B ', " R'", " F'", ' R ', ' B2', " D'", ' B ', ' U2', " B'", ' D ', ' B ', ' U2'), legacy = 'CornerTwist-E')
+        self._add_myperm2('C3[DFR>FRD;UBR>BRU;UFL>FLU]', (' R2', ' B ', " L'", ' B2', ' U ', " F'", " U'", ' B ', ' U ', ' F ', " U'", ' R2', ' B ', ' L ', " B'"), legacy = 'CornerTwist-F')
+        self._add_myperm2('C3[DFR>RDF;UBR>RUB;UFL>LUF]', self.invert_moves(self.myperms2['C3[DFR>FRD;UBR>BRU;UFL>FLU]']), legacy = 'CornerTwist-F01')
         
 
 
-        self.myperms2['CornerPermutation-A00-'] = (" R "," B'"," R "," F2"," R'"," B "," R "," F2"," R2")
-        self.myperms2['CornerPermutation-A01-'] = (" R ",' U2', ' R ', ' D ', " R'", ' U2', ' R ', " D'", " R2")
-        self.myperms2['CornerPermutation-A02-'] = (' F ', ' R ', ' B ', " R'", " F'", ' R ', " B'", " R'")
-        self.myperms2['CornerPermutation-A03-'] = (" L'", ' B ', ' U2', " B'", ' L ', ' B ', " L'", ' U2', ' L ', " B'")
-        self.myperms2['CornerPermutation-A04-'] = (" B'", ' R2', " B'", ' L2', ' B ', ' R2', " B'", ' L2', ' B2')
-        self.myperms2['CornerPermutation-A05-'] = (' F2', " D'", ' F ', ' U2', " F'", ' D ', ' F ', ' U2', ' F ')
-        self.myperms2['CornerPermutation-A06-'] = (' F ', " U'", " B'", ' U ', " F'", " U'", ' B ', ' U ')
-        self.myperms2['CornerPermutation-A07-'] = (' R ', ' B ', " L'", " B'", " R'", ' B ', ' L ', " B'")
-        self.myperms2['CornerPermutation-A08-'] = (' L2', ' B2', " L'", ' F2', ' L ', ' B2', " L'", ' F2', " L'")
+        self._add_myperm2('C3[UBR>UFL>URF]', (" R "," B'"," R "," F2"," R'"," B "," R "," F2"," R2"), legacy = 'CornerPermutation-A00')
+        self._add_myperm2('C3[UBR>LUF>URF]', (" R ",' U2', ' R ', ' D ', " R'", ' U2', ' R ', " D'", " R2"), legacy = 'CornerPermutation-A01')
+        self._add_myperm2('C3[UBR>FLU>URF]~v01', (' F ', ' R ', ' B ', " R'", " F'", ' R ', " B'", " R'"), legacy = 'CornerPermutation-A02')
+        self._add_myperm2('C3[UBR>FLU>FUR]', (" L'", ' B ', ' U2', " B'", ' L ', ' B ', " L'", ' U2', ' L ', " B'"), legacy = 'CornerPermutation-A03')
+        self._add_myperm2('C3[UBR>UFL>FUR]', (" B'", ' R2', " B'", ' L2', ' B ', ' R2', " B'", ' L2', ' B2'), legacy = 'CornerPermutation-A04')
+        self._add_myperm2('C3[UBR>LUF>FUR]', (' F2', " D'", ' F ', ' U2', " F'", ' D ', ' F ', ' U2', ' F '), legacy = 'CornerPermutation-A05')
+        self._add_myperm2('C3[UBR>LUF>RFU]~v01', (' F ', " U'", " B'", ' U ', " F'", " U'", ' B ', ' U '), legacy = 'CornerPermutation-A06')
+        self._add_myperm2('C3[UBR>FLU>RFU]~v01', (' R ', ' B ', " L'", " B'", " R'", ' B ', ' L ', " B'"), legacy = 'CornerPermutation-A07')
+        self._add_myperm2('C3[UBR>UFL>RFU]', (' L2', ' B2', " L'", ' F2', ' L ', ' B2', " L'", ' F2', " L'"), legacy = 'CornerPermutation-A08')
 
-        self.myperms2['CornerPermutation-A09-'] = (" L'", ' B ', ' L ', " F'", " L'", " B'", ' L ', ' F ')
-        self.myperms2['CornerPermutation-A10-'] = (' U ', ' L ', " U'", " R'", ' U ', " L'", " U'", ' R ')
-        self.myperms2['CornerPermutation-A11-'] = (" F'", " L'", ' F ', " R'", " F'", ' L ', ' F ', ' R ')
+        self._add_myperm2('C3[UBR>FLU>URF]~v02', (" L'", ' B ', ' L ', " F'", " L'", " B'", ' L ', ' F '), legacy = 'CornerPermutation-A09')
+        self._add_myperm2('C3[UBR>LUF>RFU]~v02', (' U ', ' L ', " U'", " R'", ' U ', " L'", " U'", ' R '), legacy = 'CornerPermutation-A10')
+        self._add_myperm2('C3[UBR>FLU>RFU]~v02', (" F'", " L'", ' F ', " R'", " F'", ' L ', ' F ', ' R '), legacy = 'CornerPermutation-A11')
 
-        self.myperms2['CornerPermutation-B00-'] = (" B'"," R "," F2"," R'"," B "," R "," F2"," R'")
-        self.myperms2['CornerPermutation-B01-'] = (' U2', ' R ', ' D ', " R'", ' U2', ' R ', " D'", " R'")
-        self.myperms2['CornerPermutation-B02-'] = (" R'", ' F ', ' R ', ' B ', " R'", " F'", ' R ', " B'")
-        self.myperms2['CornerPermutation-B03-'] = (' U ', ' R2', " U'", ' B2', ' U ', ' B2', ' U ', ' R2', " U'", ' B2', " U'", ' B2')
-        self.myperms2['CornerPermutation-B04-'] = (" D'", ' R2', " D'", ' L ', ' D ', ' R2', " D'", " L'", ' D2')
+        self._add_myperm2('C3[DRB>LUF>BRU]', (" B'"," R "," F2"," R'"," B "," R "," F2"," R'"), legacy = 'CornerPermutation-B00')
+        self._add_myperm2('C3[DRB>FLU>BRU]~v01', (' U2', ' R ', ' D ', " R'", ' U2', ' R ', " D'", " R'"), legacy = 'CornerPermutation-B01')
+        self._add_myperm2('C3[DRB>UFL>BRU]~v01', (" R'", ' F ', ' R ', ' B ', " R'", " F'", ' R ', " B'"), legacy = 'CornerPermutation-B02')
+        self._add_myperm2('C3[DRB>UFL>UBR]', (' U ', ' R2', " U'", ' B2', ' U ', ' B2', ' U ', ' R2', " U'", ' B2', " U'", ' B2'), legacy = 'CornerPermutation-B03')
+        self._add_myperm2('C3[DRB>LUF>UBR]', (" D'", ' R2', " D'", ' L ', ' D ', ' R2', " D'", " L'", ' D2'), legacy = 'CornerPermutation-B04')
 
-        self.myperms2['CornerPermutation-B05-'] = self.invert_moves(self.myperms2['CornerPermutation-B00-'])
-        self.myperms2['CornerPermutation-B06-'] = self.invert_moves(self.myperms2['CornerPermutation-B01-'])
-        self.myperms2['CornerPermutation-B07-'] = self.invert_moves(self.myperms2['CornerPermutation-B02-'])
-        self.myperms2['CornerPermutation-B08-'] = self.invert_moves(self.myperms2['CornerPermutation-B03-'])
-        self.myperms2['CornerPermutation-B09-'] = self.invert_moves(self.myperms2['CornerPermutation-B04-'])
+        self._add_myperm2('C3[DRB>BRU>LUF]', self.invert_moves(self.myperms2['C3[DRB>LUF>BRU]']), legacy = 'CornerPermutation-B05')
+        self._add_myperm2('C3[DRB>BRU>FLU]~v01', self.invert_moves(self.myperms2['C3[DRB>FLU>BRU]~v01']), legacy = 'CornerPermutation-B06')
+        self._add_myperm2('C3[DRB>BRU>UFL]~v01', self.invert_moves(self.myperms2['C3[DRB>UFL>BRU]~v01']), legacy = 'CornerPermutation-B07')
+        self._add_myperm2('C3[DRB>UBR>UFL]', self.invert_moves(self.myperms2['C3[DRB>UFL>UBR]']), legacy = 'CornerPermutation-B08')
+        self._add_myperm2('C3[DRB>UBR>LUF]', self.invert_moves(self.myperms2['C3[DRB>LUF>UBR]']), legacy = 'CornerPermutation-B09')
 
-        self.myperms2['CornerPermutation-B10-'] = (" F'", ' D2', ' F ', ' U2', " F'", ' D2', ' F ', ' U2')
-        self.myperms2['CornerPermutation-B11-'] = (" B'", " D'", ' F2', ' D ', ' B ', " D'", ' F2', ' D ')
-        self.myperms2['CornerPermutation-B12-'] = self.invert_moves(self.myperms2['CornerPermutation-B10-'])
-        self.myperms2['CornerPermutation-B13-'] = self.invert_moves(self.myperms2['CornerPermutation-B11-'])
+        self._add_myperm2('C3[DRB>FLU>BRU]~v02', (" F'", ' D2', ' F ', ' U2', " F'", ' D2', ' F ', ' U2'), legacy = 'CornerPermutation-B10')
+        self._add_myperm2('C3[DRB>UFL>BRU]~v02', (" B'", " D'", ' F2', ' D ', ' B ', " D'", ' F2', ' D '), legacy = 'CornerPermutation-B11')
+        self._add_myperm2('C3[DRB>BRU>FLU]~v02', self.invert_moves(self.myperms2['C3[DRB>FLU>BRU]~v02']), legacy = 'CornerPermutation-B12')
+        self._add_myperm2('C3[DRB>BRU>UFL]~v02', self.invert_moves(self.myperms2['C3[DRB>UFL>BRU]~v02']), legacy = 'CornerPermutation-B13')
 
         
 
-        self.myperms2['CornerPermutation-C00-'] = (" R "," U2"," R'"," U2"," R'"," F2"," R "," U2"," R "," U2"," R'"," F2")
-        self.myperms2['CornerPermutation-C01-'] = (" D'", ' F2', ' D ', " B'", " D'", ' F ', ' D ', ' B ', " D'", ' F ', ' D ')
-        self.myperms2['CornerPermutation-C02-'] = (" U'", " F'", ' U ', ' B ', " U'", " F'", ' U ', " B'", " U'", ' F2', ' U ')
-        self.myperms2['CornerPermutation-C03-'] = (" B'", ' D ', ' B ', ' U2', " B'", " D'", ' B ', ' U2')
-        self.myperms2['CornerPermutation-C04-'] = (' U2', " B'", ' D ', ' B ', ' U2', " B'", " D'", ' B ')
-        self.myperms2['CornerPermutation-C05-'] = self.invert_moves(self.myperms2['CornerPermutation-C00-'])
-        self.myperms2['CornerPermutation-C06-'] = self.invert_moves(self.myperms2['CornerPermutation-C01-'])
-        self.myperms2['CornerPermutation-C07-'] = self.invert_moves(self.myperms2['CornerPermutation-C02-'])
-        self.myperms2['CornerPermutation-C08-'] = (' U ', ' F2', ' U ', ' B ', " U'", ' F ', ' U ', " B'", " U'", ' F ', " U'")
-        self.myperms2['CornerPermutation-C09-'] = self.invert_moves(self.myperms2['CornerPermutation-C08-'])
-        self.myperms2['CornerPermutation-C10-'] = (' F2', " U'", ' R2', ' U ', ' R2', ' D ', ' R2', " D'", ' R2', " D'", ' F2', ' D ')
-        self.myperms2['CornerPermutation-C11-'] = self.invert_moves(self.myperms2['CornerPermutation-C10-'])
+        self._add_myperm2('C3[DFR>UBR>UFL]~v01', (" R "," U2"," R'"," U2"," R'"," F2"," R "," U2"," R "," U2"," R'"," F2"), legacy = 'CornerPermutation-C00')
+        self._add_myperm2('C3[DFR>RUB>FLU]~v01', (" D'", ' F2', ' D ', " B'", " D'", ' F ', ' D ', ' B ', " D'", ' F ', ' D '), legacy = 'CornerPermutation-C01')
+        self._add_myperm2('C3[DFR>BRU>LUF]', (" U'", " F'", ' U ', ' B ', " U'", " F'", ' U ', " B'", " U'", ' F2', ' U '), legacy = 'CornerPermutation-C02')
+        self._add_myperm2('C3[DFR>BRU>FLU]', (" B'", ' D ', ' B ', ' U2', " B'", " D'", ' B ', ' U2'), legacy = 'CornerPermutation-C03')
+        self._add_myperm2('C3[DFR>FLU>BRU]', (' U2', " B'", ' D ', ' B ', ' U2', " B'", " D'", ' B '), legacy = 'CornerPermutation-C04')
+        self._add_myperm2('C3[DFR>UFL>UBR]~v01', self.invert_moves(self.myperms2['C3[DFR>UBR>UFL]~v01']), legacy = 'CornerPermutation-C05')
+        self._add_myperm2('C3[DFR>FLU>RUB]~v01', self.invert_moves(self.myperms2['C3[DFR>RUB>FLU]~v01']), legacy = 'CornerPermutation-C06')
+        self._add_myperm2('C3[DFR>LUF>BRU]', self.invert_moves(self.myperms2['C3[DFR>BRU>LUF]']), legacy = 'CornerPermutation-C07')
+        self._add_myperm2('C3[DFR>RUB>FLU]~v02', (' U ', ' F2', ' U ', ' B ', " U'", ' F ', ' U ', " B'", " U'", ' F ', " U'"), legacy = 'CornerPermutation-C08')
+        self._add_myperm2('C3[DFR>FLU>RUB]~v02', self.invert_moves(self.myperms2['C3[DFR>RUB>FLU]~v02']), legacy = 'CornerPermutation-C09')
+        self._add_myperm2('C3[DFR>UBR>UFL]~v02', (' F2', " U'", ' R2', ' U ', ' R2', ' D ', ' R2', " D'", ' R2', " D'", ' F2', ' D '), legacy = 'CornerPermutation-C10')
+        self._add_myperm2('C3[DFR>UFL>UBR]~v02', self.invert_moves(self.myperms2['C3[DFR>UBR>UFL]~v02']), legacy = 'CornerPermutation-C11')
 
         self.myperms2['EdgeFlip2-A'] = (" R'", " U'", " F'", ' U ', ' F2', ' U2', " F'", " B'", " R'", ' F ', ' R ', ' B ', ' U2', " F'", ' R ') 
         self.myperms2['EdgeFlip2-B'] = (" L "," F "," R'"," F'"," L'"," U2"," R "," U "," R "," U'"," R2"," U2"," R ")
@@ -1522,39 +1473,39 @@ class Rubiks_3:
         # - Adjacent3Center / Line3Center は 3面の center 配置 family。
         # - OuterCenterBar / MidCenterBar は center の bar を動かす family。
         if self.size >= 4:
-            self.myperms2['X-Center-XA-'] = ("2R2","2F2","2R2","2F2")
-            self.myperms2['X-Center-XB-'] = (" U ","2R2","2F2","2R2","2F2"," U'")
-            self.myperms2['X-Center-XC-'] = (" U2","2R2","2F2","2R2","2F2"," U2")
-            self.myperms2['X-Center-WA-'] = ('2F2', " D'", '2R2', '2F2', '2R2', '2F2', ' D ', '2F2')
-            self.myperms2['X-Center-WB-'] = ('2B2', " D'", '2L2', '2B2', '2L2', '2B2', ' D ', '2B2')
-            self.myperms2['X-Center-WC-'] = ('2F2', ' U ', '2L2', '2F2', '2L2', '2F2', " U'", '2F2')
-            self.myperms2['X-Center-WD-'] = ('2B2', ' U ', '2R2', '2B2', '2R2', '2B2', " U'", '2B2') 
-            self.myperms2['X-Center-VA-'] = ("2F'", '2U ', '2F ', "2U'", '2F ', "2R'", "2F'", '2R ')
-            self.myperms2['X-Center-VB-'] = ("2F'", '2U ', "2F'", "2U'", '2F ', "2R'", '2F ', '2R ')
-            self.myperms2['X-Center-VC-'] = ("2R'", '2F ', '2R ', "2F'", '2U ', "2F'", "2U'", '2F ')
-            self.myperms2['X-Center-UA-'] = ('2F2', ' U ', '2R2', " U'", '2R2', '2F2', '2R2', ' U ', '2R2', " U'")
-            self.myperms2['X-Center-UB-'] = ('2R2', '2F2', '2R2', '2F2', ' U2', '2R2', '2F2', '2R2', '2F2', ' U2')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2F>D@2R.2B>U@2R.2F;D@2R.2F>U@2L.2F>U@2R.2B]', ("2R2","2F2","2R2","2F2"), legacy = 'X-Center-XA')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2F>D@2R.2B>U@2R.2B;D@2R.2F>U@2R.2F>U@2L.2B]', (" U ","2R2","2F2","2R2","2F2"," U'"), legacy = 'X-Center-XB')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2F>D@2R.2B>U@2L.2B;D@2R.2F>U@2R.2B>U@2L.2F]', (" U2","2R2","2F2","2R2","2F2"," U2"), legacy = 'X-Center-XC')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2B>D@2L.2F>U@2L.2F;D@2R.2B>D@2R.2F>U@2R.2B]', ('2F2', " D'", '2R2', '2F2', '2R2', '2F2', ' D ', '2F2'), legacy = 'X-Center-WA')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2B>U@2L.2F>D@2L.2F;D@2R.2B>U@2R.2B>D@2R.2F]', ('2B2', " D'", '2L2', '2B2', '2L2', '2B2', ' D ', '2B2'), legacy = 'X-Center-WB')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2B>D@2L.2F>U@2L.2F;D@2R.2F>U@2R.2F>U@2R.2B]', ('2F2', ' U ', '2L2', '2F2', '2L2', '2F2', " U'", '2F2'), legacy = 'X-Center-WC')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2B>U@2L.2B>U@2L.2F;D@2R.2B>U@2R.2B>D@2R.2F]', ('2B2', ' U ', '2R2', '2B2', '2R2', '2B2', " U'", '2B2'), legacy = 'X-Center-WD')
+            self._add_myperm2('CtrX4s[B@2R.2U<>F@2R.2U;L@2F.2D<>R@2F.2D]~v01', ("2F'", '2U ', '2F ', "2U'", '2F ', "2R'", "2F'", '2R '), legacy = 'X-Center-VA')
+            self._add_myperm2('CtrX4s[B@2R.2U<>F@2R.2U;L@2B.2D<>R@2B.2D]', ("2F'", '2U ', "2F'", "2U'", '2F ', "2R'", '2F ', '2R '), legacy = 'X-Center-VB')
+            self._add_myperm2('CtrX4s[B@2R.2U<>F@2R.2U;L@2F.2D<>R@2F.2D]~v02', ("2R'", '2F ', '2R ', "2F'", '2U ', "2F'", "2U'", '2F '), legacy = 'X-Center-VC')
+            self._add_myperm2('CtrX6p[3x2][D@2L.2F>U@2R.2F>U@2R.2B;D@2R.2B>U@2L.2F>D@2R.2F]', ('2F2', ' U ', '2R2', " U'", '2R2', '2F2', '2R2', ' U ', '2R2', " U'"), legacy = 'X-Center-UA')
+            self._add_myperm2('CtrX4s[D@2L.2F<>U@2L.2B;D@2R.2B<>U@2R.2F]', ('2R2', '2F2', '2R2', '2F2', ' U2', '2R2', '2F2', '2R2', '2F2', ' U2'), legacy = 'X-Center-UB')
 
 
             
 
-            self.myperms2['X-Center-8-'] = ("2U2","2R2","2U'","2R2","2U'","2R2","2U'","2R2","2U ")      
+            self._add_myperm2('CtrX10p[5x2]~v02', ("2U2","2R2","2U'","2R2","2U'","2R2","2U'","2R2","2U "), legacy = 'X-Center-8')
             
-            self.myperms2['X-Center-6A-'] = ("2R ","2U ","2R'","2U'")
-            self.myperms2['X-Center-6B-'] = ("2R ","2U'","2R'","2U ")
-            self.myperms2['X-Center-6C-'] = ("2R ","2U2","2R'","2U2")
-            self.myperms2['X-Center-6D-'] = ("2R2","2U'","2R2","2U ")
-            self.myperms2['X-Center-6E-'] = ("2U'","2R ","2U ","2R2","2F ","2R ","2F'")
-            self.myperms2['X-Center-6F-'] = ('2B ', '2D2', '2B ', '2D2', "2L'", "2B'", '2L ', '2U ', "2B'", "2U'")
-            self.myperms2['X-Center-6G-'] = ("2R ","2U ","2R ","2U'","2R2")
-            self.myperms2['X-Center-6H-'] = ("2R ","2U'","2R ","2U ","2R2")
-            self.myperms2['X-Center-6I-'] = ("2R2","2U ","2R'","2U'","2R'")
-            self.myperms2['X-Center-6J-'] = ("2R2","2U'","2R'","2U ","2R'")
-            self.myperms2['X-Center-6K-'] = ("2R2","2U ","2R2","2U ","2R2","2U2","2R2")
-            self.myperms2['X-Center-6L-'] = ("2R2","2U2","2R2","2U ","2R2","2U ","2R2")
-            self.myperms2['X-Center-6M-'] = ("2U ","2R2","2U2","2R2","2U ")
-            self.myperms2['X-Center-6N-'] = ("2F ","2R ","2F2","2R'","2F ")
-            self.myperms2['X-Center-6O-'] = ("2F'","2R ","2F2","2R'","2F'")
+            self._add_myperm2('CtrX6p[3x2][B@2R.2U>L@2F.2U>U@2R.2F;D@2R.2F>F@2R.2U>R@2F.2U]', ("2R ","2U ","2R'","2U'"), legacy = 'X-Center-6A')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2U>R@2F.2D>U@2R.2F;D@2R.2F>F@2R.2U>L@2F.2D]', ("2R ","2U'","2R'","2U "), legacy = 'X-Center-6B')
+            self._add_myperm2('CtrX6p[3x2][B@2L.2U>D@2R.2F>F@2R.2U;B@2R.2U>F@2L.2U>U@2R.2F]', ("2R ","2U2","2R'","2U2"), legacy = 'X-Center-6C')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>F@2R.2U>L@2F.2D;B@2R.2U>R@2F.2D>F@2R.2D]', ("2R2","2U'","2R2","2U "), legacy = 'X-Center-6D')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2U>L@2F.2D>D@2R.2F;F@2R.2U>R@2F.2D>U@2R.2F]', ("2U'","2R ","2U ","2R2","2F ","2R ","2F'"), legacy = 'X-Center-6E')
+            self._add_myperm2('CtrX10p[5x2]~v01', ('2B ', '2D2', '2B ', '2D2', "2L'", "2B'", '2L ', '2U ', "2B'", "2U'"), legacy = 'X-Center-6F')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>R@2F.2U>D@2R.2F;F@2R.2D>L@2F.2U>U@2R.2F]', ("2R ","2U ","2R ","2U'","2R2"), legacy = 'X-Center-6G')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>L@2F.2D>D@2R.2F;F@2R.2D>R@2F.2D>U@2R.2F]', ("2R ","2U'","2R ","2U ","2R2"), legacy = 'X-Center-6H')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>D@2R.2F>R@2F.2U;F@2R.2D>U@2R.2F>L@2F.2U]', ("2R2","2U ","2R'","2U'","2R'"), legacy = 'X-Center-6I')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>D@2R.2F>L@2F.2D;F@2R.2D>U@2R.2F>R@2F.2D]', ("2R2","2U'","2R'","2U ","2R'"), legacy = 'X-Center-6J')
+            self._add_myperm2('CtrX6p[3x2][B@2L.2U>F@2R.2U>R@2F.2U;B@2R.2U>L@2F.2U>F@2L.2U]', ("2R2","2U ","2R2","2U ","2R2","2U2","2R2"), legacy = 'X-Center-6K')
+            self._add_myperm2('CtrX6p[3x2][B@2L.2U>L@2F.2D>F@2R.2U;B@2R.2U>F@2L.2U>R@2F.2D]', ("2R2","2U2","2R2","2U ","2R2","2U ","2R2"), legacy = 'X-Center-6L')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>R@2F.2U>L@2F.2D;F@2R.2D>L@2F.2U>R@2F.2D]', ("2U ","2R2","2U2","2R2","2U "), legacy = 'X-Center-6M')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>R@2F.2D>L@2B.2D;F@2R.2D>L@2F.2D>R@2B.2D]', ("2F ","2R ","2F2","2R'","2F "), legacy = 'X-Center-6N')
+            self._add_myperm2('CtrX6p[3x2][B@2R.2D>L@2B.2D>R@2F.2D;F@2R.2D>R@2B.2D>L@2F.2D]', ("2F'","2R ","2F2","2R'","2F'"), legacy = 'X-Center-6O')
 
             
 
@@ -1694,7 +1645,7 @@ class Rubiks_3:
                 self.myperms2['Plus-Center-U-'] = ('2R ', ' S2', '2R2', ' S2', '2R ')
                 self.myperms2['Plus-Center-V-'] = (" E'", "2B'", ' E ', '2B2', " E'", "2B'", ' E ')
                 self.myperms2['Plus-Center-TA-'] = (' M ', '2U2', " M'", '2U ', ' S ', '2U2', " S'", "2U'")
-                self.myperms2['Plus-Center-TB-'] = ('2R2', ' U ', ' S2', '2R2', ' S2', '2F2', ' M2', '2F2', ' M2', '2R2', " U'", '2R2')
+                self.myperms2['Plus-Center-TB-'] = ('2L2', " U'", ' S2', ' M2', ' U ', '2L2', " U'", ' M2', ' S2', ' U ')
                 self.myperms2['Plus-Center-TC-'] = (' S2', ' M2', ' D ', '2F2', " D'", ' S2', ' M2', ' D ', '2F2', " D'")
 
                 
@@ -2193,6 +2144,7 @@ class Rubiks_3:
 
     def _expand_registered_myperms(self):
         """登録済みmyperms2を対称変換展開してmypermsへ写す。"""
+        self.myperms2 = normalize_myperm_registry(self.myperms2)
         for key in self.myperms2.keys():
             L = self.make_transformations(self.myperms2[key],tuple())
             if self.size < 6:
@@ -2202,12 +2154,6 @@ class Rubiks_3:
             else:
                 Num = 48
             for i in range(Num):
-                   
-                if i <= 9:
-                    SI = '0' + str(i)
-                else:
-                    SI = str(i)
-                       
                 self.myperms[make_myperm_key(key, i)] = L[0][i]
 
     
@@ -3108,27 +3054,27 @@ class Rubiks_3:
         return self.move_ops.make_transformations(s,Moves)
 
     def piece_display_name(self, piece_type, piece):
-        """Return a compact position-style label for a solved-state piece."""
+        """Return a position label using this cube's move faces and solved colors."""
         if piece_type == 'Center' and len(piece) == 1:
             return self._center_display_name(piece[0])
         if piece_type == 'Edge' and len(piece) == 2:
             return self._edge_display_name(piece)
-        labels = ','.join(RUBIKS_FACE_LABEL_BY_COLOR[self.state_0[index]] for index in piece)
+        labels = ','.join(self._face_and_solved_color(index) for index in piece)
         return f'{piece_type}-({labels})'
 
     def _center_display_name(self, index):
         face_label, row_index, col_index = self._index_to_face_row_col(index)
         horizontal_label = self._coordinate_axis_label(face_label, col_index, axis = 'horizontal')
         vertical_label = self._coordinate_axis_label(face_label, row_index, axis = 'vertical')
-        return f'Center-({face_label},{horizontal_label},{vertical_label})'
+        return f'Center-({self._face_and_solved_color(index)},{horizontal_label},{vertical_label})'
 
     def _edge_display_name(self, piece):
-        face_labels = [RUBIKS_FACE_LABEL_BY_COLOR[self.state_0[index]] for index in piece]
+        face_labels = [self._face_and_solved_color(index) for index in piece]
         axis_label = self._edge_axis_label(piece)
         return f'Edge-({face_labels[0]},{face_labels[1]},{axis_label})'
 
     def _edge_axis_label(self, piece):
-        face_labels = [RUBIKS_FACE_LABEL_BY_COLOR[self.state_0[index]] for index in piece]
+        face_labels = [self._move_face_label(index) for index in piece]
         incident_families = {self._axis_family(face_label) for face_label in face_labels}
         candidates = []
         for index in piece:
@@ -3146,10 +3092,18 @@ class Rubiks_3:
         return '?'
 
     def _index_to_face_row_col(self, index):
-        face_color = self.state_0[index]
-        face_label = RUBIKS_FACE_LABEL_BY_COLOR[face_color]
+        face_index = int(index // self.surface_num)
+        face_color = RUBIKS_SOLVED_COLORS_BY_FACE_INDEX[face_index]
+        face_label = RUBIKS_MOVE_FACE_LABELS_BY_INDEX[face_index]
         row_index, col_index = np.argwhere(self.Nums[face_color] == index)[0]
         return face_label, int(row_index), int(col_index)
+
+    def _move_face_label(self, index):
+        return RUBIKS_MOVE_FACE_LABELS_BY_INDEX[int(index // self.surface_num)]
+
+    def _face_and_solved_color(self, index):
+        color = str(self.state_0[index])
+        return f'{self._move_face_label(index)}:{RUBIKS_COLOR_NAMES.get(color, color)}'
 
     def _coordinate_axis_label(self, face_label, coordinate, axis):
         positive_label, negative_label, toward_positive = RUBIKS_AXIS_INFO[face_label][axis]

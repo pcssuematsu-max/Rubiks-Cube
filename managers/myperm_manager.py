@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import reduce
 import tkinter as Tk
 
-from cube.rubiks_cube import format_myperm_key, make_myperm_key, myperm_base_key
+from core.myperm_keys import myperm_base_key, resolve_myperm_key
 from ui.dialogs import MakeMypermOkButton
 
 class MyPermManager:
@@ -52,17 +52,7 @@ class MyPermManager:
 
     def _resolve_myperm_key(self, key):
         """Resolve text input or legacy key text to an actual myperm key."""
-        if key in self.frame.cube.myperms:
-            return key
-        if isinstance(key, str):
-            base_key = key.strip()
-            default_key = make_myperm_key(base_key, 0)
-            if default_key in self.frame.cube.myperms:
-                return default_key
-            for myperm_key in self.frame.myperms_keys:
-                if format_myperm_key(myperm_key) == base_key:
-                    return myperm_key
-        return None
+        return resolve_myperm_key(self.frame.cube, key)
 
     def apply_named_myperm(self, myperm_key):
         """指定されたmyperm名の手順を実行してStateViewerを更新する。"""
@@ -74,4 +64,3 @@ class MyPermManager:
         display_moves = self.frame.cube.format_moves(self.frame.cube.myperms[resolved_key]) if hasattr(self.frame.cube, 'format_moves') else self.frame.cube.myperms[resolved_key]
         print(display_moves)
         self.frame.set_color(self.frame.cube.state)
-

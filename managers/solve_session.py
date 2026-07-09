@@ -8,7 +8,8 @@ from functools import reduce
 import numpy as np
 import tkinter as Tk
 
-from cube.rubiks_cube import format_myperm_key, make_myperm_key, myperm_base_key, myperm_transform_index
+from core.myperm_effects import MypermEffectAnalyzer
+from core.myperm_keys import format_myperm_key, myperm_base_key, myperm_transform_index, resolve_myperm_key
 from model.search_result import SearchResult, data
 
 PERFECT_VAL = 1.0e+8
@@ -327,6 +328,7 @@ class SolveSessionManager:
             self.frame.perf_num[self.frame.stage],
             self.frame.N,
             AI.search_mode,
+            getattr(AI,'search2_value_loss_type',None),
         )
         if update_state_viewer:
             self.frame.set_color(AI.cube.state)
@@ -495,14 +497,22 @@ class SolveSessionManager:
         x = self.frame.cube.makedata().reshape(-1,1)
         perfect_key = ''
         perfect_changed_number = 0;
-        state_key = ''.join(self.frame.cube.state)
+        if hasattr(self.frame.cube, 'state_to_str'):
+            state_key = self.frame.cube.state_to_str()
+        else:
+            state_key = ''.join(self.frame.cube.state)
 
-        if self._supports_group_values():
-            for key in self._group_value_names():
-                value = self.frame.cube.total_val[key] - (self.frame.cube.group_val[key] @ x)[0][0]
-                if value > 0.01:
-                    perfect_key += key + '(' + str(int(round(value,0))) + ')'
-                    perfect_changed_number += int(round(value,0))
+        if hasattr(self.frame.cube, 'last_perms_key'):
+            perfect_key = self.frame.cube.last_perms_key()
+            if hasattr(self.frame.cube, 'last_perms_changed_number'):
+                perfect_changed_number = self.frame.cube.last_perms_changed_number()
+        else:
+            group_key, perfect_changed_number = self._group_changed_info(x)
+            if getattr(self.frame.cube, 'myperms', None) and len(simplified_lis) > 0:
+                effect = MypermEffectAnalyzer(self.frame.cube).analyze(tuple(simplified_lis))
+                perfect_key = 'LP:' + effect.concise_name()
+            else:
+                perfect_key = group_key
                 
         if state_key in self.frame.myperms_col:
             matched_key = self.frame.myperms_col[state_key]
@@ -604,6 +614,21 @@ class SolveSessionManager:
         if hasattr(self.frame.cube, '_group_name_map'):
             return self.frame.cube._group_name_map().values()
         return getattr(self.frame.cube, 'group_val', {}).keys()
+
+    def _group_changed_info(self, state_data):
+        """従来仕様のgroup別変更量とfallback名を返す。"""
+        if not self._supports_group_values():
+            return '', 0
+        key_parts = []
+        changed_number = 0
+        for key in self._group_value_names():
+            value = self.frame.cube.total_val[key] - (self.frame.cube.group_val[key] @ state_data)[0][0]
+            if value <= 0.01:
+                continue
+            rounded_value = int(round(value, 0))
+            key_parts.append(key + '(' + str(rounded_value) + ')')
+            changed_number += rounded_value
+        return ''.join(key_parts), changed_number
 
     def _supports_myperms_greedy(self):
         required_attrs = (
@@ -803,6 +828,7 @@ class SolveSessionManager:
             self.frame.perf_num[self.frame.stage],
             self.frame.N,
             AI.search_mode,
+            getattr(AI,'search2_value_loss_type',None),
         )
         self.frame.set_color(AI.cube.state)
 
@@ -846,12 +872,12 @@ class SolveSessionManager:
             if state.search_TF and len(state.move_lis) >= 2:
                 simplified_moves = tuple(state.last_simplified_lis)
                 if simplified_moves not in self.frame.myperms_vals:
-                    myperms_key = make_myperm_key(state.last_perfect_key, 0)
+                    myperms_key = resolve_myperm_key(self.frame.cube, state.last_perfect_key)
                     improved = (
-                        myperms_key in self.frame.cube.myperms
+                        myperms_key is not None
                         and len(self.frame.cube.myperms[myperms_key]) > len(simplified_moves)
                     )
-                    if myperms_key in self.frame.cube.myperms and len(self.frame.cube.myperms[myperms_key]) > len(simplified_moves):
+                    if myperms_key is not None and len(self.frame.cube.myperms[myperms_key]) > len(simplified_moves):
                         print(self.frame.AI_idx,state.last_perfect_key,len(simplified_moves),'<-----------')
                     else:
                         print(self.frame.AI_idx,state.last_perfect_key,len(simplified_moves))

@@ -206,39 +206,47 @@ class Myloss:
 
 
 class MyLoss2:
-    def __init__(self, margin = 0.2):
-        self.margin = float(margin)
+    def __init__(self):
         self.x = np.zeros(0,dtype = 'f')
-        self.diffs = np.zeros(0,dtype = 'f')
         self.y = np.zeros(0,dtype = 'f')
         self.t = np.zeros(0,dtype = 'f')
         self.Indices = None
 
 
-    def forward(self,x,Indices):
+    def forward(self,x,Indices,steps_to_goal = None,gamma = None):
         self.x = x
         self.Indices = Indices
-        self.diffs = np.zeros((1,0),dtype = 'f')
+        if gamma is None:
+            gamma = 1.0
+        if steps_to_goal is None:
+            steps_to_goal = self._default_steps_to_goal(Indices)
+        dtype = self.x.dtype
+        steps_to_goal = np.asarray(steps_to_goal,dtype = dtype).reshape(-1)
+        self.y = np.zeros_like(self.x,dtype = dtype)
+        self.t = np.zeros_like(self.x,dtype = dtype)
         for i in range(len(Indices) - 1):
-            self.diffs = np.c_[self.diffs,self.x[:,Indices[i] + 1:Indices[i + 1]] - self.x[:,Indices[i]:Indices[i + 1] - 1]]
-        
-        self.y = sigmoid(self.diffs - self.margin)
-        return np.sum(np.logaddexp(0.0,self.margin - self.diffs))
+            start = Indices[i]
+            end = Indices[i + 1]
+            if end <= start:
+                continue
+            self.y[:,start:end] = softmax_H(self.x[:,start:end])
+            target = np.asarray(gamma,dtype = dtype) ** steps_to_goal[start:end]
+            target_sum = np.sum(target)
+            if target_sum <= 0:
+                target = np.ones_like(target,dtype = dtype) / max(1,len(target))
+            else:
+                target = target / target_sum
+            self.t[:,start:end] = target.reshape(1,-1)
+        return cross_entropy(self.y,self.t)
     
 
     def backward(self):
-        D = self.y - 1.0
-        dO = np.zeros_like(self.x)
-        D_index = 0
-        for i in range(len(self.Indices) - 1):
-            start = self.Indices[i]
-            end = self.Indices[i + 1]
-            count = end - start - 1
-            if count <= 0:
-                continue
-            d = D[:,D_index:D_index + count]
-            dO[:,start:end - 1] -= d
-            dO[:,start + 1:end] += d
-            D_index += count
+        return self.y - self.t
 
-        return dO
+    def _default_steps_to_goal(self, Indices):
+        steps = []
+        for i in range(len(Indices) - 1):
+            start = Indices[i]
+            end = Indices[i + 1]
+            steps.extend(range(end - start - 1,-1,-1))
+        return steps

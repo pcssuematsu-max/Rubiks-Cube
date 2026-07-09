@@ -6,7 +6,8 @@ from functools import reduce
 import numpy as np
 
 from core.scramble_selector import ScrambleSelector
-from cube.rubiks_cube import make_myperm_key
+from core.myperm_effects import rename_myperms_by_effect
+from core.myperm_keys import make_myperm_key, normalize_myperm_registry, single_move_myperm_name
 
 
 PERFECT_VAL = 1.0e+8
@@ -83,7 +84,7 @@ class MegaminxCube:
         TF_Y = [(),('R2',),('r2',),('R2','r1'),('r2','R1'),('R2','R1'),('R2','R2'),('r2','r2'),('R2','R2','r1'),('r2','r2','R1'),('R2','R2','r1','r1'),('R2','R2','r1','R2')]
 
 
-        self.transformation_keys = [x + y for x in TF_X for y in TF_Y]
+        self.transformation_keys = [x + y for y in TF_Y for x in TF_X]
 
 
         self.transformation_dict = {'R1':'UD','R2':'FB','r1':'DU','r2':'BF'}
@@ -112,7 +113,7 @@ class MegaminxCube:
 
 
         self.myperms2['CO2-A'] = ('R', 'bR', "bL'", "bR2'", "R'", 'F', 'R', 'bR2', 'bL', "bR'", "R'", "F'")
-        self.myperms2['CO2-B'] = ("R'", "U", "L", "U'", "R2", "bR", "R'", "U", "L'", "U'", "R", "bR'", "R'")
+        self.myperms2['CO2-B'] = ("L'", 'bL', 'L2', 'F', "R'", "F'", "L2'", "bL'", 'L', 'F', 'R', "F'")
         self.myperms2['CO2-C'] = ("F2","R'","sR'","R","F2'","U'","F","R'","sR","R","F'","U")
         self.myperms2['CO2-D'] = ("sR", "R2", "F'", "L'", "F", "R2'", "sR", "R2'", "F'", "L", "F", "R2", "sR2'")
         self.myperms2['CO2-E'] = ("sR2", "R2", "F'", "L'", "F", "R2'", "sR", "R2'", "F'", "L", "F", "R2", "sR2")
@@ -160,6 +161,8 @@ class MegaminxCube:
         self.myperms2['Corner3-009-'] = ("F'", "L'", 'F', "R2'", "F'", 'L', 'F', 'R2')
         self.myperms2['Corner3-010-'] = ('R', 'U', "L'", "U'", 'bR', "R'", 'U', 'L', "U'", 'R', "bR'", "R'")
         self.myperms2['Corner3-011-'] = ("L'", 'F', "R'", "F'", 'L', 'F', 'R', "F'")
+        self.myperms2['Corner3-012-'] = ('sL', "sR'", 'dR', "dL'", "dR'", 'sR', 'dR', 'dL', "dR'", "sL'")
+        self.myperms2['Corner3-013-'] = ("bR'", "R'", 'F', 'R', 'bR2', "R'", "F'", 'R', "bR'")
 
         self.myperms2['Corner2MidEdge2-000'] = ("F2'", 'L2', 'F', "L'", "F'", "L'", 'F2', 'U', 'L', "U'", "L'", 'U', 'L', "U'", 'R', 'U', "L'", "U'", "R'")
 
@@ -167,7 +170,7 @@ class MegaminxCube:
         self.myperms2['Corner3MidEdge3-001'] = ("R", "U", "R'", "U'", "R'", "F", "R", "F'")
 
         self.myperms2['Corner4MidEdge2-000'] = ("R","U'","R'","U","R'","F","R","F'")
-        self.myperms2['Corner4MidEdge2-000'] = ("F","R'","F'","R","U'","R","U","R'")
+        self.myperms2['Corner4MidEdge2-001'] = ("F","R'","F'","R","U'","R","U","R'")
 
 
 
@@ -194,6 +197,7 @@ class MegaminxCube:
         self.myperms2['EP-V03-'] = ("F'", "L'", "bL'", "U'", "bR'", "U", "bR", "bL", "L'", "U'", "bL'", "U'", "bL", "U2", "L2", "F")
 
 
+
         self.myperms2['EF-A'] = ("F2", "R2'", "F'", "R", "F", "R", "F2'",
                                  "L'", "U'", "R'", "U", "R", "L")
 
@@ -215,14 +219,13 @@ class MegaminxCube:
 
 
         
+        self.myperms2 = normalize_myperm_registry(self.myperms2)
+
         self.myperms_group = {'Corner':set(),
                               'MidEdge':set()}
 
 
         
-
-        Lis = list(self.myperms2.keys())
-
 
         for key in self.myperms2.keys():
             L = self.make_transformations(self.myperms2[key],tuple())
@@ -233,7 +236,7 @@ class MegaminxCube:
         self.single_and_rotate = []
 
         for m in self.move_keys:
-            single_move_key = make_myperm_key('SingleMove ' + m, 0)
+            single_move_key = make_myperm_key(single_move_myperm_name(m), 0)
             self.myperms[single_move_key] = (m,)
             self.single_and_rotate.append(single_move_key)
 
@@ -358,6 +361,7 @@ class MegaminxCube:
                              (110,82,93),(111,92,103),(112,102,63),(113,62,73),(114,72,83)]
 
         self.center_index = []
+        rename_myperms_by_effect(self)
         self.edge_colors = sorted(self.edge_key.keys(), key = lambda x: self.edge_key[x])
         self.corner_colors = sorted(self.corner_key.keys(), key = lambda x: self.corner_key[x])
 

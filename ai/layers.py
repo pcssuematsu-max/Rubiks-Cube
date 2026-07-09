@@ -185,11 +185,19 @@ def softmax_backward(dO,y):
 
 
 class Transformer_SelfAttention:
-    def __init__(self,ips,ops):
-        self.WQ = np.random.randn(ops,ips).astype('f') / math.sqrt(ips / 2)
-        self.WK = np.random.randn(ops,ips).astype('f') / math.sqrt(ips / 2)
-        self.WV = np.random.randn(ops,ips).astype('f') / math.sqrt(ips / 2)
-        self.scale = 1.0 / math.sqrt(max(ops,1))
+    def __init__(self,ips,mps,ops = None):
+        if ops is None:
+            ops = mps
+            mps = ops
+        else:
+            mps = mps
+        self.ips = int(ips)
+        self.mps = int(mps)
+        self.ops = int(ops)
+        self.WQ = np.random.randn(self.mps,self.ips).astype('f') / math.sqrt(max(self.ips / 2,1))
+        self.WK = np.random.randn(self.mps,self.ips).astype('f') / math.sqrt(max(self.ips / 2,1))
+        self.WV = np.random.randn(self.ops,self.ips).astype('f') / math.sqrt(max(self.ips / 2,1))
+        self.scale = 1.0 / math.sqrt(max(self.mps,1))
         self.x = None
         self.dWQ = np.zeros_like(self.WQ)
         self.dWK = np.zeros_like(self.WK)
@@ -198,51 +206,62 @@ class Transformer_SelfAttention:
         self.K = None
         self.V = None
         self.M = None
+        self.attended = None
         self.out = None
     
     def forward(self,x):
         self.x = x
         self.Q = self.WQ @ x
         self.K = self.WK @ x
-        self.V = self.WV @ x
+        self.V = x
 
         score = self.scale * np.einsum('ib,jb->bij',self.Q,self.K)
         self.M = softmax(score)
-        self.out = np.einsum('bij,jb->ib',self.M,self.V).astype('f')
+        self.attended = np.einsum('bij,jb->ib',self.M,self.V).astype('f')
+        self.out = (self.WV @ self.attended).astype('f')
         return self.out
     
     def backward(self,dO):
-        dM = np.einsum('ib,jb->bij',dO,self.V)
+        self.dWV = dO @ self.attended.T
+        dA = self.WV.T @ dO
+        dM = np.einsum('ib,jb->bij',dA,self.V)
         dS = softmax_backward(dM,self.M)
-        dV = np.einsum('bij,ib->jb',self.M,dO)
+        dV = np.einsum('bij,ib->jb',self.M,dA)
 
         dQ = self.scale * np.einsum('bij,jb->ib',dS,self.K)
         dK = self.scale * np.einsum('bij,ib->jb',dS,self.Q)
 
         self.dWQ = dQ @ self.x.T
         self.dWK = dK @ self.x.T
-        self.dWV = dV @ self.x.T
 
-        return self.WQ.T @ dQ + self.WK.T @ dK + self.WV.T @ dV
+        return self.WQ.T @ dQ + self.WK.T @ dK + dV
 
 
 class PieceTokenSelfAttention:
     """Build one token per piece feature block, then apply self-attention over pieces."""
 
-    def __init__(self,ips,ops,piece_feature_indices):
-        self.W = np.random.randn(ops,ips).astype('f') / math.sqrt(ips)
-        self.B = np.zeros(ops,dtype = 'f')
-        self.WQ = np.random.randn(ops,ops).astype('f') * (0.1 / math.sqrt(max(ops,1)))
-        self.WK = np.random.randn(ops,ops).astype('f') * (0.1 / math.sqrt(max(ops,1)))
-        self.WV = np.random.randn(ops,ops).astype('f') / math.sqrt(max(ops,1))
+    def __init__(self,ips,mps,ops,piece_feature_indices = None):
+        if piece_feature_indices is None:
+            piece_feature_indices = ops
+            ops = mps
+            mps = ops
+        self.ips = int(ips)
+        self.mps = int(mps)
+        self.ops = int(ops)
+        self.W = np.random.randn(self.mps,self.ips).astype('f') / math.sqrt(max(self.ips,1))
+        self.B = np.zeros(self.ops,dtype = 'f')
+        self.WQ = np.random.randn(self.mps,self.mps).astype('f') * (0.1 / math.sqrt(max(self.mps,1)))
+        self.WK = np.random.randn(self.mps,self.mps).astype('f') * (0.1 / math.sqrt(max(self.mps,1)))
+        self.WV = np.random.randn(self.ops,self.mps).astype('f') / math.sqrt(max(self.mps,1))
         self.piece_feature_indices = [np.asarray(indices,dtype = int) for indices in piece_feature_indices]
-        self.scale = 1.0 / math.sqrt(max(ops,1))
+        self.scale = 1.0 / math.sqrt(max(self.mps,1))
         self.x = None
         self.tokens = None
         self.Q = None
         self.K = None
         self.V = None
         self.M = None
+        self.attended_sum = None
         self.out = None
         self.backward_chunk_size = 32
         self.forward_chunk_size = 256
@@ -256,7 +275,7 @@ class PieceTokenSelfAttention:
         if cache:
             self.x = x
             self.tokens = self._piece_tokens(x)
-            self.Q,self.K,self.V,self.M,self.out = self._forward_from_tokens(self.tokens)
+            self.Q,self.K,self.V,self.M,self.out,self.attended_sum = self._forward_from_tokens(self.tokens)
             return self.out
         return self._forward_no_cache(x)
 
@@ -267,24 +286,26 @@ class PieceTokenSelfAttention:
         self.K = None
         self.V = None
         self.M = None
+        self.attended_sum = None
         self.out = None
-        out = np.zeros((self.W.shape[0],x.shape[1]),dtype = 'f')
+        out = np.zeros((self.ops,x.shape[1]),dtype = 'f')
         chunk_size = max(1,min(int(self.forward_chunk_size),x.shape[1]))
         for start in range(0,x.shape[1],chunk_size):
             end = min(start + chunk_size,x.shape[1])
-            _,_,_,_,chunk_out = self._forward_from_tokens(self._piece_tokens(x[:,start:end]))
+            _,_,_,_,chunk_out,_ = self._forward_from_tokens(self._piece_tokens(x[:,start:end]))
             out[:,start:end] = chunk_out
         return out
 
     def _forward_from_tokens(self,tokens):
         q = np.einsum('od,pdb->pob',self.WQ,tokens)
         k = np.einsum('od,pdb->pob',self.WK,tokens)
-        v = np.einsum('od,pdb->pob',self.WV,tokens)
+        v = tokens
         score = self.scale * np.einsum('pdb,qdb->bpq',q,k)
         attention = softmax(score)
         attended = np.einsum('bpq,qdb->pdb',attention,v)
-        out = np.sum(attended,axis = 0) + self.B.reshape(-1,1)
-        return q,k,v,attention,out.astype('f')
+        attended_sum = np.sum(attended,axis = 0)
+        out = self.WV @ attended_sum + self.B.reshape(-1,1)
+        return q,k,v,attention,out.astype('f'),attended_sum.astype('f')
 
     def _piece_tokens(self,x):
         token_count = len(self.piece_feature_indices)
@@ -315,12 +336,15 @@ class PieceTokenSelfAttention:
         k = self.K[:,:,start:end]
         v = self.V[:,:,start:end]
         attention = self.M[start:end]
-        dS_base = np.einsum('db,qdb->bq',dO,v)
+        attended_sum = self.attended_sum[:,start:end]
+        self.dWV += dO @ attended_sum.T
+        dA = self.WV.T @ dO
+        dS_base = np.einsum('db,qdb->bq',dA,v)
         dS = np.broadcast_to(dS_base.reshape(dS_base.shape[0],1,dS_base.shape[1]),attention.shape).copy()
         row_dot = np.sum(dS * attention,axis = -1,keepdims = True)
         dS -= row_dot
         dS *= attention
-        dV = np.einsum('bq,db->qdb',np.sum(attention,axis = 1),dO)
+        dV = np.einsum('bq,db->qdb',np.sum(attention,axis = 1),dA)
         k_batch = np.ascontiguousarray(np.transpose(k,(2,0,1)))
         q_batch = np.ascontiguousarray(np.transpose(q,(2,0,1)))
         dQ = self.scale * np.matmul(dS,k_batch).transpose(1,2,0)
@@ -329,11 +353,10 @@ class PieceTokenSelfAttention:
         token_matrix = tokens.transpose(1,0,2).reshape(tokens.shape[1],-1)
         self.dWQ += dQ.transpose(1,0,2).reshape(dQ.shape[1],-1) @ token_matrix.T
         self.dWK += dK.transpose(1,0,2).reshape(dK.shape[1],-1) @ token_matrix.T
-        self.dWV += dV.transpose(1,0,2).reshape(dV.shape[1],-1) @ token_matrix.T
 
         d_tokens = self.WQ.T @ dQ.transpose(1,0,2).reshape(dQ.shape[1],-1)
         d_tokens += self.WK.T @ dK.transpose(1,0,2).reshape(dK.shape[1],-1)
-        d_tokens += self.WV.T @ dV.transpose(1,0,2).reshape(dV.shape[1],-1)
+        d_tokens += dV.transpose(1,0,2).reshape(dV.shape[1],-1)
         d_tokens = d_tokens.reshape(tokens.shape[1],tokens.shape[0],tokens.shape[2]).transpose(1,0,2)
 
         dx = np.zeros((self.x.shape[0],end - start),dtype = 'f')

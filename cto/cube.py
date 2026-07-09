@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 
-from cube.rubiks_cube import make_myperm_key
+from core.myperm_keys import make_myperm_key
 from fto.cube import FTO_FACE_SIGNS, FtoCube
 
 

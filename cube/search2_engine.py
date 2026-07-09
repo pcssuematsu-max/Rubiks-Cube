@@ -169,7 +169,10 @@ class Search2Engine:
             removed_moves = {self.cube.invert_str(key[-1])}
         else:
             removed_moves = set([])
-        filtered_moves = filter(lambda move: move[:2] in removed_moves, self.cube.move_keys)
+        filtered_moves = filter(
+            lambda move: move in removed_moves or move[:2] in removed_moves,
+            self.cube.move_keys,
+        )
         for move in filtered_moves:
             move_index = self.cube.move_keys.index(move)
             invalid_move_mask[move_index, column_index] = True

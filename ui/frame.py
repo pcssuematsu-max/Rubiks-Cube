@@ -9,6 +9,7 @@ import tkinter as Tk
 from ai.rubiks_ai import Rubiks_3_AI
 from cto.cube import CtoCube
 from fto.cube import FtoCube
+from group_puzzle.cube import create_group_puzzle
 from megaminx.cube import MegaminxCube
 from pyraminx.cube import MasterPyraminxCube, PyraminxCube
 from square1.cube import Square1Cube
@@ -24,9 +25,10 @@ from managers.solve_session import SolveSessionManager, SolveSessionState
 from model.search_result import data
 from ui.control_panel import ControlPanel
 from ui.cto.state_viewer import CtoStateViewer
-from ui.dialogs import AnalysisScoresDialog, DatasetInspectorDialog, LpShowKeyButton, ParamEditorDialog, ToolsDialog
+from ui.dialogs import AnalysisScoresDialog, DatasetInspectorDialog, LpShowKeyButton, ParamEditorDialog, ToolsDialog, W1EmbeddingDialog
 from ui.frame_config import FrameConfig
 from ui.fto.state_viewer import FtoStateViewer
+from ui.group_puzzle.state_viewer import GroupStateViewer
 from ui.megaminx.state_viewer import MegaminxStateViewer
 from ui.pyraminx.state_viewer import PyraminxStateViewer
 from ui.square1.state_viewer import Square1StateViewer
@@ -97,12 +99,18 @@ def build_default_bootstrap_datas(cube_size):
     if cube_size >= 6:
         bootstrap_datas = bootstrap_datas + [cube.flip_inside_moves(x) for x in bootstrap_datas]
 
-    return (
-        bootstrap_datas
-        + [cube.transform(x,48) for x in bootstrap_datas]
-        + [cube.transform(x,24) for x in bootstrap_datas]
-        + [cube.transform(x,72) for x in bootstrap_datas]
-    )
+    if cube_size >= 6:
+        return (
+            bootstrap_datas
+            + [cube.transform(x,48) for x in bootstrap_datas]
+            + [cube.transform(x,24) for x in bootstrap_datas]
+            + [cube.transform(x,72) for x in bootstrap_datas]
+        )
+    else:
+        return (
+            bootstrap_datas
+            + [cube.transform(x,24) for x in bootstrap_datas]
+        )        
 
 
 class Frame(Tk.Frame):
@@ -147,7 +155,6 @@ class Frame(Tk.Frame):
             search2_max_frontiers = config.search2_max_frontiers,
             search2_torch_batch_sizes = config.search2_torch_batch_sizes,
             search2_value_loss_types = config.search2_value_loss_types,
-            search2_value_loss_margins = config.search2_value_loss_margins,
             torch_training_devices = config.torch_training_devices,
             use_torch = config.use_torch,
             use_torch_predict = config.use_torch_predict,
@@ -205,6 +212,22 @@ class Frame(Tk.Frame):
 
     def _create_cube(self, config):
         """puzzle type に応じた cube 実装を生成する。"""
+        if self.puzzle_type in ('group', 'symmetric_group', 'linear_group'):
+            group_kind = config.group_kind
+            if self.puzzle_type == 'symmetric_group':
+                group_kind = 'symmetric'
+            elif self.puzzle_type == 'linear_group':
+                group_kind = 'linear'
+            return create_group_puzzle(
+                kind = group_kind,
+                degree = config.group_degree,
+                dimension = config.group_dimension,
+                modulus = config.group_modulus,
+                generators = config.group_generators,
+                family = config.group_family,
+                auto_add_inverses = config.group_auto_add_inverses,
+                display_name = config.group_name,
+            )
         if self.puzzle_type == 'megaminx':
             return MegaminxCube(
                 size = config.cube_size,
@@ -279,6 +302,8 @@ class Frame(Tk.Frame):
         )
 
     def _window_title(self):
+        if self.puzzle_type in ('group', 'symmetric_group', 'linear_group'):
+            return 'Finite Group Puzzle'
         if self.puzzle_type == 'megaminx':
             return 'Megaminx'
         if self.puzzle_type == 'master_pyraminx':
@@ -335,7 +360,6 @@ class Frame(Tk.Frame):
                 train_max_batches = self._ai_original_train_max_batches(ai_index),
                 train_recent_ratio = self._ai_original_train_recent_ratio(ai_index),
                 search2_value_loss_type = self._ai_search2_value_loss_type(ai_index),
-                search2_value_loss_margin = self._ai_search2_value_loss_margin(ai_index),
             ))
         return ais
 
@@ -344,12 +368,6 @@ class Frame(Tk.Frame):
         if loss_types is None:
             return 'myloss2'
         return loss_types[ai_index]
-
-    def _ai_search2_value_loss_margin(self, ai_index):
-        margins = getattr(self.config, 'search2_value_loss_margins', None)
-        if margins is None:
-            return 0.2
-        return float(margins[ai_index])
 
     def _ai_residual_enabled(self, ai_index, search_mode):
         residuals = getattr(self.config, 'residuals', None)
@@ -448,6 +466,8 @@ class Frame(Tk.Frame):
 
     def _default_priority_list(self):
         """puzzle type ごとの既定 priority list を返す。"""
+        if self.puzzle_type in ('group', 'symmetric_group', 'linear_group'):
+            return [list(self.cube.group_val.keys())] * self.AInum
         if self.puzzle_type == 'megaminx':
             return [['Corner', 'MidEdge']] * self.AInum
         if self.puzzle_type == 'pyraminx':
@@ -505,7 +525,6 @@ class Frame(Tk.Frame):
                                    search2_max_frontiers = None,
                                    search2_torch_batch_sizes = None,
                                    search2_value_loss_types = None,
-                                   search2_value_loss_margins = None,
                                    torch_training_devices = None,
                                    use_torch = None,
                                    use_torch_predict = None,
@@ -551,8 +570,6 @@ class Frame(Tk.Frame):
                 self.AIs[i].search2_torch_batch_size = int(search2_torch_batch_sizes[i])
             if search2_value_loss_types is not None:
                 self.AIs[i].set_search2_value_loss_type(search2_value_loss_types[i])
-            if search2_value_loss_margins is not None:
-                self.AIs[i].set_search2_value_loss_margin(search2_value_loss_margins[i])
             if torch_training_devices is not None:
                 self.AIs[i].torch_training_device = str(torch_training_devices[i])
             if use_torch is not None:
@@ -756,7 +773,12 @@ class Frame(Tk.Frame):
     def _build_viewers(self, cube_size):
         """state/move/prob/success viewer を生成して配置する。"""
         self._build_grad_viewer_panels()
-        if self.puzzle_type == 'megaminx':
+        if self.puzzle_type in ('group', 'symmetric_group', 'linear_group'):
+            viewer_class = GroupStateViewer
+            self.SV = viewer_class(self, self.cube)
+            self.grad_viewer_positive = viewer_class(self.grad_viewer_positive_panel, self.cube, mini_mode = True)
+            self.grad_viewer_negative = viewer_class(self.grad_viewer_negative_panel, self.cube, mini_mode = True)
+        elif self.puzzle_type == 'megaminx':
             viewer_class = MegaminxStateViewer
             self.SV = viewer_class(self)
             self.grad_viewer_positive = viewer_class(self.grad_viewer_positive_panel, mini_mode = True)
@@ -1131,6 +1153,13 @@ class Frame(Tk.Frame):
 
     def analyze_transformer_embedding(self):
         self.debug_analysis_manager.show_transformer_embedding_analysis(self.AI_idx)
+
+    def open_w1_embedding_map(self):
+        if not hasattr(self, 'w1_embedding_dialog') or not self.w1_embedding_dialog.winfo_exists():
+            self.w1_embedding_dialog = W1EmbeddingDialog(self)
+        else:
+            self.w1_embedding_dialog.deiconify()
+            self.w1_embedding_dialog.lift()
 
     def open_dataset_inspector(self):
         if not hasattr(self, 'dataset_inspector_dialog') or not self.dataset_inspector_dialog.winfo_exists():

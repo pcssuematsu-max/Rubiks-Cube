@@ -431,6 +431,7 @@ class SearchDataManager:
             f'source_ai_index: {getattr(sample, "source_ai_index", None)}',
             f'source_search_mode: {getattr(sample, "source_search_mode", None)}',
             f'source_search2_value_loss_type: {getattr(sample, "source_search2_value_loss_type", None)}',
+            f'steps_to_goal: {getattr(sample, "steps_to_goal", None)}',
             f'move length: {len(sample.moves)}',
             f'scramble: {display_scramble}',
             f'moves: {display_moves}',

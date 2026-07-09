@@ -106,6 +106,436 @@ class DebugAnalysisManager:
         content = self.transformer_embedding_analysis_text(ai_index)
         self.frame.show_analysis_text(f'transformer embedding analysis (ai={ai_index})', content)
 
+    def w1_embedding_projection(self, ai_index, method = 'PCA', point_mode = 'Feature columns', max_points = 600, perplexity = 20.0, iterations = 300, embedding_source = 'W1', pca_axes = (1,2)):
+        """Project W1 or its attention transforms to two dimensions for inspection."""
+        ai = self.frame.AIs[ai_index]
+        if not hasattr(ai, 'params') or 'W1' not in ai.params:
+            raise ValueError(f'AI {ai_index} has no params[\'W1\'].')
+        w1 = np.asarray(ai.params['W1'], dtype = 'f')
+        if w1.ndim != 2 or w1.shape[1] != self.frame.cube.ips:
+            raise ValueError(
+                f'W1 shape {w1.shape} is incompatible with cube input size {self.frame.cube.ips}.'
+            )
+        embedding_matrix, source_name = self._attention_embedding_source(ai, w1, embedding_source)
+
+        normalized_method = method.strip().upper().replace('-', '')
+        point_limit = max(2, int(max_points))
+        if normalized_method == 'TSNE':
+            point_limit = min(point_limit, 800)
+        embeddings, labels, piece_types, feature_indices, solve_groups, correct_flags, feature_colors = self._w1_embedding_points(
+            embedding_matrix,
+            point_mode,
+            point_limit,
+        )
+        if embeddings.shape[0] < 2:
+            raise ValueError('At least two W1 embedding points are required.')
+        full_metrics = self._embedding_analysis_metrics(embeddings, piece_types, solve_groups)
+
+        if normalized_method == 'PCA':
+            axes = tuple(int(axis) for axis in pca_axes)
+            if len(axes) != 2 or axes[0] == axes[1] or min(axes) < 1:
+                raise ValueError(f'PCA axes must be two different positive components: {pca_axes}')
+            all_coordinates, explained = self._pca_projection(embeddings, dimensions = max(axes))
+            coordinates = all_coordinates[:,[axes[0] - 1, axes[1] - 1]]
+            method_name = 'PCA'
+            method_detail = ', '.join(
+                f'PC{axis}={float(explained[axis - 1]):.2%}' if axis <= explained.size else f'PC{axis}=n/a'
+                for axis in axes
+            )
+        elif normalized_method == 'TSNE':
+            axes = (1,2)
+            coordinates, used_perplexity = self._tsne_projection(
+                embeddings,
+                perplexity = float(perplexity),
+                iterations = max(100, int(iterations)),
+            )
+            explained = np.zeros((0,), dtype = 'f')
+            method_name = 't-SNE'
+            method_detail = f'perplexity={used_perplexity:.1f}, iterations={max(100, int(iterations))}'
+        else:
+            raise ValueError(f'Unknown projection method: {method}')
+
+        return {
+            'ai_index': ai_index,
+            'model_type': 'Transformer' if getattr(ai, 'use_transformer_attention', False) else 'Affine',
+            'embedding_source': source_name,
+            'embedding_shape': embedding_matrix.shape,
+            'method': method_name,
+            'method_detail': method_detail,
+            'pca_axes': axes,
+            'point_mode': point_mode,
+            'coordinates': coordinates,
+            'embeddings': embeddings,
+            'labels': labels,
+            'piece_types': piece_types,
+            'feature_indices': feature_indices,
+            'solve_groups': solve_groups,
+            'correct_flags': correct_flags,
+            'feature_colors': feature_colors,
+            'explained': explained,
+            'separation': self._projection_type_separation(coordinates, piece_types),
+            'group_separation': self._projection_type_separation(coordinates, solve_groups),
+            'full_metrics': full_metrics,
+        }
+
+    def _attention_embedding_source(self, ai, w1, embedding_source):
+        """Return W1 or a learned attention projection of every W1 column."""
+        normalized = embedding_source.upper().replace(' ', '').replace('@', '')
+        if normalized == 'W1':
+            return w1, 'W1'
+        source_keys = {
+            'WQ1W1': 'WQ1',
+            'WK1W1': 'WK1',
+            'WV1W1': 'WV1',
+        }
+        if normalized not in source_keys:
+            raise ValueError(f'Unknown embedding source: {embedding_source}')
+        param_key = source_keys[normalized]
+        if param_key not in ai.params:
+            raise ValueError(f'AI does not expose {param_key}; use a Transformer AI or select W1.')
+        projection = np.asarray(ai.params[param_key], dtype = 'f')
+        if projection.ndim != 2 or projection.shape[1] != w1.shape[0]:
+            raise ValueError(f'{param_key} shape {projection.shape} cannot be applied to W1 shape {w1.shape}.')
+        return projection @ w1, f'{param_key} @ W1'
+
+    def _w1_embedding_points(self, w1, point_mode, max_points):
+        """Build W1 column vectors or per-piece means with piece metadata."""
+        try:
+            blocks = self._piece_feature_blocks()
+        except AttributeError as error:
+            raise ValueError('This puzzle does not expose piece-level W1 feature metadata.') from error
+        records_by_piece = []
+        use_centroids = point_mode.strip().lower().startswith('piece')
+        current_data = np.asarray(self.frame.cube.makedata()).reshape(-1)
+        perfect_data = np.asarray(self.frame.cube.perfect_data).reshape(-1)
+        solve_groups = self._piece_solve_group_labels(blocks)
+        for piece_index, (piece_name, mask) in enumerate(blocks):
+            indices = np.flatnonzero(mask) if np.asarray(mask).dtype == bool else np.asarray(mask, dtype = int)
+            indices = indices[(indices >= 0) & (indices < w1.shape[1])]
+            if indices.size == 0:
+                continue
+            piece_type = self._embedding_piece_type(piece_name, indices)
+            solve_group = self._embedding_solve_group(solve_groups[piece_index], indices)
+            piece_is_correct = bool(np.array_equal(current_data[indices], perfect_data[indices]))
+            target_local_indices = np.flatnonzero(perfect_data[indices] > 0.5)
+            if target_local_indices.size > 0:
+                target_local_index = int(target_local_indices[0])
+                target_colors = self._w1_feature_colors(piece_type, int(indices[target_local_index]), target_local_index)
+            else:
+                target_colors = ()
+            if use_centroids:
+                records_by_piece.append([(
+                    np.mean(w1[:,indices], axis = 1),
+                    piece_name,
+                    piece_type,
+                    -1,
+                    solve_group,
+                    piece_is_correct,
+                    target_colors,
+                )])
+                continue
+            piece_records = []
+            for local_index, feature_index in enumerate(indices):
+                colors = self._w1_feature_colors(piece_type, int(feature_index), local_index)
+                value_label = self._w1_feature_value_label(colors, int(feature_index))
+                piece_records.append((
+                    w1[:,feature_index],
+                    f'{piece_name} / {value_label}',
+                    piece_type,
+                    int(feature_index),
+                    solve_group,
+                    bool(piece_is_correct and perfect_data[feature_index] > 0.5),
+                    colors,
+                ))
+            records_by_piece.append(piece_records)
+
+        records = self._sample_w1_embedding_records(records_by_piece, max_points)
+        if not records:
+            return (
+                np.zeros((0, w1.shape[0]), dtype = 'f'),
+                [],
+                [],
+                np.zeros((0,), dtype = int),
+                [],
+                np.zeros((0,), dtype = bool),
+                [],
+            )
+        return (
+            np.asarray([record[0] for record in records], dtype = 'f'),
+            [record[1] for record in records],
+            [record[2] for record in records],
+            np.asarray([record[3] for record in records], dtype = int),
+            [record[4] for record in records],
+            np.asarray([record[5] for record in records], dtype = bool),
+            [record[6] for record in records],
+        )
+
+    def _piece_solve_group_labels(self, blocks):
+        """Map each piece block to the most specific descriptive cube group."""
+        group_masks = []
+        for group_name, group_vector in getattr(self.frame.cube, 'group_val', {}).items():
+            name = str(group_name)
+            if len(name) <= 1:
+                continue
+            group_masks.append((name, np.asarray(group_vector).reshape(-1) > 0))
+        labels = []
+        for piece_name, piece_mask in blocks:
+            piece_indices = np.flatnonzero(piece_mask)
+            best_name = piece_name.split('-', 1)[0]
+            best_overlap = 0
+            for group_name, group_mask in group_masks:
+                valid_indices = piece_indices[piece_indices < group_mask.size]
+                overlap = int(np.count_nonzero(group_mask[valid_indices]))
+                if overlap > best_overlap:
+                    best_name = group_name
+                    best_overlap = overlap
+            labels.append(best_name)
+        return labels
+
+    def _embedding_piece_type(self, default_name, feature_indices):
+        cube = self.frame.cube
+        if feature_indices.size > 0 and hasattr(cube, 'embedding_piece_type'):
+            return str(cube.embedding_piece_type(int(feature_indices[0])))
+        return default_name.split('-', 1)[0]
+
+    def _embedding_solve_group(self, default_name, feature_indices):
+        cube = self.frame.cube
+        if feature_indices.size > 0 and hasattr(cube, 'embedding_solve_group'):
+            return str(cube.embedding_solve_group(int(feature_indices[0])))
+        return default_name
+
+    def _sample_w1_embedding_records(self, records_by_piece, max_points):
+        """Sample deterministically while retaining at least one point per piece."""
+        all_records = [record for piece_records in records_by_piece for record in piece_records]
+        if len(all_records) <= max_points:
+            return all_records
+        selected_ids = set()
+        if len(records_by_piece) <= max_points:
+            for piece_records in records_by_piece:
+                correct_records = [record for record in piece_records if record[5]]
+                selected_record = correct_records[0] if correct_records else piece_records[len(piece_records) // 2]
+                selected_ids.add(id(selected_record))
+        remaining = [record for record in all_records if id(record) not in selected_ids]
+        remaining_count = max_points - len(selected_ids)
+        if remaining_count > 0:
+            sample_indices = np.linspace(0, len(remaining) - 1, remaining_count, dtype = int)
+            selected_ids.update(id(remaining[index]) for index in sample_indices)
+        return [record for record in all_records if id(record) in selected_ids][:max_points]
+
+    def _w1_feature_colors(self, piece_type, feature_index, local_index):
+        """Return the color symbols represented by one makedata feature."""
+        cube = self.frame.cube
+        if hasattr(cube, 'embedding_feature_colors'):
+            return tuple(str(value) for value in cube.embedding_feature_colors(feature_index))
+        feature_map = getattr(cube, 'feature_index_to_piece_color', {})
+        if feature_index in feature_map:
+            color = feature_map[feature_index][1]
+            if isinstance(color, str):
+                return (color,) if color in getattr(cube, 'colors', ()) else tuple(color)
+            return tuple(str(value) for value in color)
+        type_name = piece_type.lower()
+        if 'corner' in type_name and local_index < len(getattr(cube, 'corner_colors', ())):
+            return tuple(str(cube.corner_colors[local_index]))
+        if 'edge' in type_name and local_index < len(getattr(cube, 'edge_colors', ())):
+            return tuple(str(cube.edge_colors[local_index]))
+        if 'center' in type_name and local_index < len(getattr(cube, 'colors', ())):
+            return (str(cube.colors[local_index]),)
+        return ()
+
+    def _w1_feature_value_label(self, colors, feature_index):
+        """Return full color names for one makedata feature."""
+        if colors:
+            return '/'.join(self._color_display_name(color) for color in colors)
+        cube = self.frame.cube
+        if hasattr(cube, 'embedding_feature_value_label'):
+            return str(cube.embedding_feature_value_label(feature_index))
+        return f'feature={feature_index}'
+
+    def _color_display_name(self, color):
+        return {
+            'R': 'Red',
+            'O': 'Orange',
+            'Y': 'Yellow',
+            'W': 'White',
+            'G': 'Green',
+            'B': 'Blue',
+            'X': 'Masked',
+        }.get(str(color), str(color))
+
+    def _pca_projection(self, embeddings, dimensions = 2):
+        """Return PCA scores and explained variance ratios using NumPy only."""
+        x = np.asarray(embeddings, dtype = np.float64)
+        centered = x - np.mean(x, axis = 0, keepdims = True)
+        try:
+            u, singular_values, _ = np.linalg.svd(centered, full_matrices = False)
+        except np.linalg.LinAlgError as error:
+            raise ValueError(f'PCA failed: {error}') from error
+        component_count = min(dimensions, singular_values.size)
+        coordinates = np.zeros((x.shape[0], dimensions), dtype = 'f')
+        if component_count > 0:
+            coordinates[:,:component_count] = (u[:,:component_count] * singular_values[:component_count]).astype('f')
+        variances = singular_values ** 2
+        total = float(np.sum(variances))
+        explained = np.zeros_like(singular_values, dtype = 'f')
+        if total > 1.0e-12:
+            explained = (variances / total).astype('f')
+        return coordinates, explained
+
+    def _tsne_projection(self, embeddings, perplexity = 20.0, iterations = 300):
+        """Run a small exact t-SNE suitable for W1 analysis without sklearn."""
+        x = np.asarray(embeddings, dtype = np.float64)
+        point_count = x.shape[0]
+        if point_count < 3:
+            coordinates, _ = self._pca_projection(x, dimensions = 2)
+            return coordinates, 1.0
+        pca_dimensions = min(50, x.shape[1], point_count - 1)
+        x, _ = self._pca_projection(x, dimensions = pca_dimensions)
+        x = x.astype(np.float64)
+        used_perplexity = min(max(2.0, perplexity), max(2.0, (point_count - 1) / 3.0))
+        probabilities = self._tsne_joint_probabilities(x, used_perplexity)
+
+        y, _ = self._pca_projection(x, dimensions = 2)
+        y = y.astype(np.float64)
+        y_scale = float(np.std(y))
+        if y_scale < 1.0e-12:
+            rng = np.random.default_rng(0)
+            y = rng.normal(0.0, 1.0e-4, size = (point_count, 2))
+        else:
+            y *= 1.0e-4 / y_scale
+        velocity = np.zeros_like(y)
+        gains = np.ones_like(y)
+        learning_rate = max(100.0, point_count / 4.0)
+
+        for iteration in range(iterations):
+            squared_distances = self._pairwise_squared_distances(y)
+            numerator = 1.0 / (1.0 + squared_distances)
+            np.fill_diagonal(numerator, 0.0)
+            q = numerator / max(float(np.sum(numerator)), 1.0e-12)
+            p = probabilities * (4.0 if iteration < 100 else 1.0)
+            weighted = (p - q) * numerator
+            gradient = 4.0 * (
+                np.sum(weighted, axis = 1, keepdims = True) * y - weighted @ y
+            )
+            different_sign = (gradient > 0.0) != (velocity > 0.0)
+            gains = np.where(different_sign, gains + 0.2, gains * 0.8)
+            gains = np.maximum(gains, 0.01)
+            momentum = 0.5 if iteration < 100 else 0.8
+            velocity = momentum * velocity - learning_rate * gains * gradient
+            y += velocity
+            y -= np.mean(y, axis = 0, keepdims = True)
+        return y.astype('f'), used_perplexity
+
+    def _tsne_joint_probabilities(self, x, perplexity):
+        """Compute symmetric high-dimensional t-SNE probabilities."""
+        distances = self._pairwise_squared_distances(x)
+        point_count = x.shape[0]
+        conditional = np.zeros((point_count, point_count), dtype = np.float64)
+        target_entropy = np.log(perplexity)
+        for row in range(point_count):
+            mask = np.arange(point_count) != row
+            row_distances = distances[row,mask]
+            beta = 1.0
+            beta_min = -np.inf
+            beta_max = np.inf
+            for _ in range(50):
+                values = np.exp(-row_distances * beta)
+                value_sum = max(float(np.sum(values)), 1.0e-300)
+                entropy = np.log(value_sum) + beta * float(np.sum(row_distances * values)) / value_sum
+                difference = entropy - target_entropy
+                if abs(difference) < 1.0e-5:
+                    break
+                if difference > 0.0:
+                    beta_min = beta
+                    beta = beta * 2.0 if np.isinf(beta_max) else (beta + beta_max) / 2.0
+                else:
+                    beta_max = beta
+                    beta = beta / 2.0 if np.isinf(beta_min) else (beta + beta_min) / 2.0
+            conditional[row,mask] = values / value_sum
+        joint = (conditional + conditional.T) / (2.0 * point_count)
+        return np.maximum(joint, 1.0e-12)
+
+    def _pairwise_squared_distances(self, x):
+        norms = np.sum(x * x, axis = 1, keepdims = True)
+        return np.maximum(norms + norms.T - 2.0 * (x @ x.T), 0.0)
+
+    def _embedding_analysis_metrics(self, embeddings, piece_types, solve_groups):
+        """Measure full-dimensional clustering against shuffled-label baselines."""
+        distances = np.sqrt(self._pairwise_squared_distances(np.asarray(embeddings, dtype = np.float64)))
+        return {
+            'piece_type': self._embedding_cluster_metric(distances, piece_types, embeddings),
+            'solve_group': self._embedding_cluster_metric(distances, solve_groups, embeddings),
+        }
+
+    def _embedding_cluster_metric(self, distances, labels, embeddings, permutation_count = 12):
+        observed = self._silhouette_from_distances(distances, labels)
+        rng = np.random.default_rng(12345)
+        labels_array = np.asarray(labels, dtype = object)
+        baseline = np.asarray([
+            self._silhouette_from_distances(distances, rng.permutation(labels_array))
+            for _ in range(permutation_count)
+        ], dtype = 'f')
+        baseline_mean = float(np.mean(baseline)) if baseline.size else 0.0
+        baseline_std = float(np.std(baseline)) if baseline.size else 0.0
+        z_score = (observed - baseline_mean) / max(baseline_std, 1.0e-8)
+        separation = self._projection_type_separation(embeddings, labels)
+        return {
+            'silhouette': observed,
+            'baseline_mean': baseline_mean,
+            'baseline_std': baseline_std,
+            'z_score': z_score,
+            'separation_ratio': separation['ratio'],
+            'class_count': len(set(labels)),
+        }
+
+    def _silhouette_from_distances(self, distances, labels):
+        """Return mean silhouette score from a precomputed distance matrix."""
+        labels = np.asarray(labels, dtype = object)
+        categories = list(dict.fromkeys(labels.tolist()))
+        if len(categories) < 2 or distances.shape[0] < 2:
+            return 0.0
+        scores = np.zeros((distances.shape[0],), dtype = np.float64)
+        for category in categories:
+            own_indices = np.flatnonzero(labels == category)
+            if own_indices.size <= 1:
+                continue
+            own_distances = distances[np.ix_(own_indices, own_indices)]
+            within = np.sum(own_distances, axis = 1) / (own_indices.size - 1)
+            nearest_other = np.full((own_indices.size,), np.inf, dtype = np.float64)
+            for other_category in categories:
+                if other_category == category:
+                    continue
+                other_indices = np.flatnonzero(labels == other_category)
+                if other_indices.size == 0:
+                    continue
+                cross_mean = np.mean(distances[np.ix_(own_indices, other_indices)], axis = 1)
+                nearest_other = np.minimum(nearest_other, cross_mean)
+            denominator = np.maximum(within, nearest_other)
+            valid = np.isfinite(nearest_other) & (denominator > 1.0e-12)
+            category_scores = np.zeros_like(within)
+            category_scores[valid] = (nearest_other[valid] - within[valid]) / denominator[valid]
+            scores[own_indices] = category_scores
+        return float(np.mean(scores))
+
+    def _projection_type_separation(self, coordinates, piece_types):
+        """Summarize category-center distance relative to within-category spread."""
+        categories = sorted(set(piece_types))
+        centers = []
+        within = []
+        for category in categories:
+            indices = [index for index, value in enumerate(piece_types) if value == category]
+            points = coordinates[indices]
+            center = np.mean(points, axis = 0)
+            centers.append(center)
+            within.extend(np.linalg.norm(points - center, axis = 1).tolist())
+        between = []
+        for source in range(len(centers)):
+            for target in range(source + 1, len(centers)):
+                between.append(float(np.linalg.norm(centers[source] - centers[target])))
+        within_mean = float(np.mean(within)) if within else 0.0
+        between_mean = float(np.mean(between)) if between else 0.0
+        ratio = between_mean / max(within_mean, 1.0e-12)
+        return {'within': within_mean, 'between': between_mean, 'ratio': ratio}
+
     def transformer_attention_analysis_text(self, ai_index):
         ai = self.frame.AIs[ai_index]
         if not self._supports_original_attention_analysis(ai):
@@ -1010,8 +1440,12 @@ class DebugAnalysisManager:
     def _pyraminx_viewer_states(self, vector, N):
         """Map Pyraminx piece-feature indices to a viewer state."""
         state_size = len(self.frame.cube.state)
-        positive_state = np.zeros(state_size, dtype = str)
-        negative_state = np.zeros(state_size, dtype = str)
+        if self.frame.puzzle_type in ('group', 'symmetric_group', 'linear_group'):
+            positive_state = np.full(state_size, '', dtype = object)
+            negative_state = np.full(state_size, '', dtype = object)
+        else:
+            positive_state = np.zeros(state_size, dtype = str)
+            negative_state = np.zeros(state_size, dtype = str)
         positive_indices, negative_indices = self._viewer_ordered_indices(vector, N)
         self._fill_pyraminx_viewer_state(positive_state, positive_indices)
         self._fill_pyraminx_viewer_state(negative_state, negative_indices)

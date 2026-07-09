@@ -53,10 +53,10 @@ class SuccessViewer(Tk.Frame):
         Tk.Frame.__init__(self,master,relief = Tk.RIDGE,bd = 4,bg = '#303030')
         self.ai_count = ai_count
         self.history = []
-        self.history_limit = 160
+        self.history_limit = 200
         self.history_columns = 40
         self.history_block = 4
-        self.font = ('Century Gothic',9,'bold')
+        self.font = ('Futura',9,'bold')
         self._build_widgets()
 
     def _build_widgets(self):
@@ -259,7 +259,7 @@ class MoveViewer(Tk.Canvas):
         self.c_size = 700
         self.text_color = '#FFFFFF'
         self.move_color = '#000000'
-        self.font = 'Century Gothic'
+        self.font = 'Futura'
         self.font_size = 10
         self.words_in_a_row = 20
         self.c_start = 150
@@ -285,6 +285,7 @@ class MoveViewer(Tk.Canvas):
         solved_count,
         solve_count,
         search_mode,
+        search2_value_loss_type = None,
     ):
         self.delete('text')
         self.delete('header')
@@ -303,6 +304,7 @@ class MoveViewer(Tk.Canvas):
                 leaf_values,
                 step_values_per_row,
                 search_mode,
+                search2_value_loss_type,
                 row_index,
             )
 
@@ -334,13 +336,13 @@ class MoveViewer(Tk.Canvas):
         self.create_text(self.value_start,header_y,text = 'Value',tags = 'header',fill = self.text_color,font = (self.font,self.font_size,'bold'))
         self.create_text(self.c_start,header_y,text = 'Moves',tags = 'header',fill = self.text_color,font = (self.font,self.font_size,'bold'),anchor = 'w')
 
-    def _draw_log_row(self, move_index, move_rows, key_labels, root_values, leaf_values, step_values, search_mode, row_index):
+    def _draw_log_row(self, move_index, move_rows, key_labels, root_values, leaf_values, step_values, search_mode, search2_value_loss_type, row_index):
         row_y = 100 + self.r_dist * row_index
         self.create_text(self.key_width * 0.5,row_y,text = key_labels[move_index],tags = 'text',fill = self.text_color,font = (self.font,self.font_size,'bold'))
         self.create_text(self.value_start,row_y,text = self._format_value_text(root_values[move_index], leaf_values[move_index], step_values[move_index]),tags = 'text',fill = self.text_color,font = (self.font,self.font_size,'bold'))
 
         for step_index, move_label in enumerate(move_rows[move_index]):
-            square_color = self._move_square_color(step_values[move_index], step_index, search_mode)
+            square_color = self._move_square_color(step_values[move_index], step_index, search_mode, search2_value_loss_type)
             self.create_rectangle(
                 self.c_start + self.c_dist * (step_index % self.words_in_a_row - 0.475),
                 self.r_start + self.r_dist * (row_index + step_index // self.words_in_a_row - 0.4),
@@ -366,7 +368,7 @@ class MoveViewer(Tk.Canvas):
             return f'{root_value:.3f} -> {leaf_value:.3f}'
         return f'{leaf_value:.3f}'
 
-    def _move_square_color(self, step_values, step_index, search_mode):
+    def _move_square_color(self, step_values, step_index, search_mode, search2_value_loss_type = None):
         if len(step_values) == 0:
             return self.text_color
         step_value = step_values[step_index + 1]
@@ -406,7 +408,7 @@ class ProbViewer(Tk.Canvas):
     def __init__(self,master,move_keys):
         self.r_size = 120
         self.c_size = 350
-        self.font = ('Century Gothic',8,'bold')
+        self.font = ('Futura',8,'bold')
         self.column_width = 55
         self.row_height = 9
         self.columns = 6

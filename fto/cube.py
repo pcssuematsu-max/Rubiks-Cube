@@ -9,7 +9,8 @@ from functools import reduce
 import numpy as np
 
 from core.scramble_selector import ScrambleSelector
-from cube.rubiks_cube import make_myperm_key
+from core.myperm_effects import rename_myperms_by_effect
+from core.myperm_keys import make_myperm_key, normalize_myperm_name, single_move_myperm_name
 
 
 FTO_FACE_SIGNS = {
@@ -74,6 +75,7 @@ class FtoCube:
         self._init_groups()
         self.state_0 = np.array([FTO_FACE_COLORS[self.index_to_face[i]] for i in range(self.sticker_num)])
         self.state = self.state_0.copy()
+        rename_myperms_by_effect(self)
         self._init_feature_layout()
         self.perfect_data = self.makedata()
         self._init_group_values()
@@ -238,7 +240,7 @@ class FtoCube:
         self.myperms = {}
         self.single_and_rotate = []
         for move_key in self.move_keys:
-            key = make_myperm_key("SingleMove-" + move_key, 0)
+            key = make_myperm_key(single_move_myperm_name(move_key), 0)
             self.myperms[key] = (move_key,)
             self.single_and_rotate.append(key)
         self.myperms2 = {}
@@ -265,18 +267,7 @@ class FtoCube:
         self._add_myperm2("FTO-InsideCommutator-D", ("mURF", "mULB'", "mURF'", "mULB"))
 
 
-        self._add_myperm2("FTO-CornerPerm2-A", ('mULB', "DRB'", 'ULB', 'DRB', "mULB'", "DRB'", "ULB'", 'URF', 'DRB', "URF'", 'DRB', "DLF'", "DRB'", 'DLF', 'mUFL', 'ULB', "DRB'", "ULB'", "mUFL'", 'ULB', 'DRB', "ULB'", "mUBR'", "ULB'", 'DLF', 'ULB', 'mUBR', "ULB'", "DLF'", 'ULB'))
-        self._add_myperm2("FTO-CornerPerm3-A", ('mULB', "DRB'", 'ULB', 'DRB', "mULB'", "ULB'", "URF'", "ULB'", 'URF', 'DLF', 'ULB', "mUBR'", "ULB'", "DLF'", 'ULB', 'mUBR'))
-        self._add_myperm2("FTO-CornerPerm3-B", ("DFR'", "UBR'", "DFR'", 'UBR', "DFR'", 'mURF', 'UBR', "DBL'", "UBR'", "mURF'", 'UBR', 'DBL', "UBR'", 'mUFL', "UBR'", 'UFL', 'UBR', "mUFL'", "UBR'", "UFL'", 'UBR', "mUFL'", 'UBR', 'UFL', "UBR'", 'mUFL', 'UBR', "UFL'", "UBR'"))
-
-
-
         self._add_myperm2("FTO-EdgeCycle3-A", ("URF","ULB","URF'","ULB","URF","ULB","URF'","ULB"))
-        self._add_myperm2("FTO-EdgeCycle3-B", ('mURF', 'ULB', "URF'", 'ULB', 'URF', 'ULB', "URF'", 'ULB', 'URF', 'UFL', "DBL'", "UFL'", "mURF'", 'UFL', 'DBL', "UFL'"))
-        self._add_myperm2("FTO-EdgeCycle3-C", ("URF'", 'ULB', "URF'", "ULB'", "URF'", 'ULB', "URF'", "ULB'", "DBL'", 'UBR', 'DBL', 'mUBR', "DBL'", "UBR'", 'DBL', 'DLF', 'DRB', "DLF'", 'DRB', 'DLF', 'DRB', "DLF'", 'DRB', "mUBR'"))
-        self._add_myperm2("FTO-EdgeCycle3-D", ("DBL'", 'UBR', "DBL'", "UBR'", "DBL'", 'UBR', "DBL'", "UBR'", "mUFL'", "UBR'", 'UFL', "UBR'", "UFL'", "UBR'", 'UFL', "UBR'", "UFL'", "URF'", 'DRB', 'URF', 'mUFL', "URF'", "DRB'", 'URF', 'DFR', 'DBL', "DFR'", 'DBL', 'DFR', 'DBL', "DFR'", 'DBL'))
-
-
 
         self._add_myperm2("FTO-CenterPerm-A", ("mUFL'","UBR","UFL'","UBR'","mUFL","UBR","UFL","UBR'"))
         self._add_myperm2("FTO-CenterPerm-B", ("mUBR'", "DFR'", 'UBR', 'DFR', 'mUBR', "DFR'", "UBR'", 'DFR'))
@@ -286,6 +277,7 @@ class FtoCube:
 
 
     def _add_myperm2(self, name, moves, add_inverse = True):
+        name = normalize_myperm_name(name)
         normalized_moves = self.normalize_move_sequence(moves)
         self.myperms2[name] = normalized_moves
         if add_inverse:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from heapdict import heapdict
 
-from cube.rubiks_cube import make_myperm_key
+from core.myperm_keys import resolve_myperm_key
 
 class LastPermsReporter:
     """last_permsや探索済み手順の長さを比較・表示する診断処理を担当する。"""
@@ -96,8 +96,8 @@ class LastPermsReporter:
 
     def _registered_myperm_length(self, base_key):
         """登録済み myperm の transform 0 長を puzzle ごとに解決する。"""
-        myperms_key = make_myperm_key(base_key, 0)
-        if myperms_key in self.frame.cube.myperms:
+        myperms_key = resolve_myperm_key(self.frame.cube, base_key)
+        if myperms_key is not None:
             return len(self.frame.cube.myperms[myperms_key])
 
         legacy_key = self._legacy_transform_zero_key(base_key)

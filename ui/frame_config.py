@@ -1,7 +1,7 @@
 """Configuration object for the main Tkinter frame."""
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 
 MoveSequence = Tuple[str, ...]
@@ -21,6 +21,17 @@ class FrameConfig:
     Centers: bool = False
     Edges: bool = False
     Cross: bool = False
+
+    # Generic finite group puzzle.  Symmetric generators use 1-based one-line
+    # permutations; linear generators use square matrices over F_p.
+    group_kind: str = 'symmetric'
+    group_degree: int = 3
+    group_dimension: int = 2
+    group_modulus: int = 2
+    group_generators: Optional[Mapping[str, Any]] = None
+    group_family: str = 'GL'
+    group_name: Optional[str] = None
+    group_auto_add_inverses: bool = False
 
     # Search / scramble initialization.
     ai_search_modes: Optional[Sequence[str]] = None
@@ -43,7 +54,6 @@ class FrameConfig:
     search2_max_frontiers: Optional[Sequence[int]] = None
     search2_torch_batch_sizes: Optional[Sequence[int]] = None
     search2_value_loss_types: Optional[Sequence[str]] = None
-    search2_value_loss_margins: Optional[Sequence[float]] = None
     torch_training_devices: Optional[Sequence[str]] = None
     use_torch: Optional[Sequence[bool]] = None
     use_torch_predict: Optional[Sequence[bool]] = None
@@ -85,7 +95,6 @@ class FrameConfig:
         self._validate_ai_sequence_length('search2_max_frontiers', self.search2_max_frontiers, ai_count)
         self._validate_ai_sequence_length('search2_torch_batch_sizes', self.search2_torch_batch_sizes, ai_count)
         self._validate_ai_sequence_length('search2_value_loss_types', self.search2_value_loss_types, ai_count)
-        self._validate_ai_sequence_length('search2_value_loss_margins', self.search2_value_loss_margins, ai_count)
         self._validate_ai_sequence_length('torch_training_devices', self.torch_training_devices, ai_count)
         self._validate_ai_sequence_length('use_torch', self.use_torch, ai_count)
         self._validate_ai_sequence_length('use_torch_predict', self.use_torch_predict, ai_count)

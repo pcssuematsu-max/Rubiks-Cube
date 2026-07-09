@@ -4,7 +4,7 @@ from collections import Counter
 
 import numpy as np
 
-from cube.rubiks_cube import format_myperm_key, make_myperm_key, myperm_base_key
+from core.myperm_keys import format_myperm_key, resolve_myperm_key
 
 
 class MypermAnalyzer:
@@ -108,15 +108,7 @@ class MypermAnalyzer:
 
     def _resolve_expanded_myperm_key(self, key_text):
         """Resolve display text or base key text to an expanded myperm tuple key."""
-        default_key = make_myperm_key(key_text, 0)
-        if default_key in self.cube.myperms:
-            return default_key
-        for key in self.cube.myperms:
-            if format_myperm_key(key) == key_text:
-                return key
-            if myperm_base_key(key) == key_text and key[1] == 0:
-                return key
-        return None
+        return resolve_myperm_key(self.cube, key_text)
 
     def _format_moves(self, moves):
         """Return moves in puzzle-specific display notation when available."""

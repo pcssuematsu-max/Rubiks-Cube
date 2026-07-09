@@ -133,6 +133,9 @@ class ParamManager:
 
     def _data_dir(self, index):
         """AI indexに対応する保存ディレクトリ名を作る。"""
+        namespace = getattr(self.frame.cube, 'parameter_namespace', None)
+        if namespace:
+            return os.path.join('.', 'GroupAIdatas', namespace, 'AI' + str(index))
         return './AIdatas' + str(index)
 
     def _target_keys(self, ai, keylis):

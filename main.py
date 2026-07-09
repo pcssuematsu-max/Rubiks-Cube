@@ -105,34 +105,41 @@ def _default_initial_scramble_groups(size,puzzle_type):
 
     if puzzle_type == "megaminx":
         return (
-            [("U",),
-             ("U'",),
-             ("U2",),
-             ("U2'",),
-             ("D",),
-             ("B",),
-             ("dL",),
-             ("dR",),
-             ("sL",),
-             ("sR",),
-             ("R",),
-             ("R'",),
-             ("F",),
-             ("F'",),
-
+            [
+                ('F', "R'", "F'", 'R', 'U', 'R', "U'", "R'"),
+                ("R","U'","R'","U","R'","F","R","F'"),
+                ('R', "U'", "bL'", 'U', "R'", "F'", 'R', "U'", 'bL', 'U', "R'", 'F'),
+                ("B'", 'D', 'dL', "D'", 'B', 'sR', "B'", 'D', "dL'", "D'", 'B', "sR'"),
+                ("U2'", 'F', 'dR', "F'", "U2'", 'L', "U'", 'F', "dR'", "F'", 'U', "L'", "U'"),
+                ("bR'", 'B', 'sL', "B'", 'bR', 'sR', "bR'", 'B', "sL'", "B'", 'bR', "sR'"),
+                ("bR2'", 'B', 'sL', "B'", "bR2'", 'sR', "bR'", 'B', "sL'", "B'", 'bR', "sR'", "bR'"),
+                ('sL2', "L'", "F'", 'L', "sL2'", "L'", 'F', 'L', 'sL', 'D', "dR'", "D2'", "sL'", 'L', 'sL', 'D2', 'dR', "D'", "sL'", "L'"),
+                ("F'", "L'", "bR", "U2", "bL", "U'", "bL'", "U'", "bR'", "bL", "L", "U", "L'", "U'", "bL'", "L", "F"),
+                ("L'", "bR", "U2", "bL", "U'", "bL'", "U'", "bR'", "bL", "L", "U", "L'", "U'", "bL'", "L"),
+                ('F2', "dL2'", "L2'", 'dL2', 'L', "dL'", "L'", "dL'", 'L2', 'bL', 'sL', 'dL', "sL'", 'dL', "bL'", "F2'"),
+                ("bR2'", 'bL2', "sL2'", 'bL2', 'sL', "bL'", "sL'", "bL'", 'sL2', 'dL', 'L', 'bL', "L'", 'bL2', "dL'", 'bR2'),
+                ("U","R'","U'","F","U","R","U'","R'","F'","R"),
+                ("U'","R'","U'","F","U","R","U'","R'","F'","R"),
+                ("U2","R'","U'","F","U","R","U'","R'","F'","R"),
+                ("U2'","R'","U'","F","U","R","U'","R'","F'","R"),
+                ("U","R2","U2","R2'","U","R2","U2","R2'","U2"),
+                ("U'","R2","U2","R2'","U","R2","U2","R2'","U2"),
+                ("U2","R2","U2","R2'","U","R2","U2","R2'","U2"),
+                ("U2'","R2","U2","R2'","U","R2","U2","R2'","U2"),
+                ('R2', "U2'", "bR2'", 'U2', 'bR', "U'", "bR'", "U'", 'bR2', 'B', 'bL', 'U', "bL'", 'U', "B'", "R2'", "F2'", 'U2', 'L2', "U2'", "L'", 'U', 'L', 'U', "L2'", "sL'", "bL'", "U'", 'bL', "U'", 'sL', 'F2'),
+                ('U', 'L', 'bL', "L'", "bL'", "U'", "sL'", "bL'", "L'", 'bL', 'L', 'sL'),
+                ('B', 'sL', 'D', "sL'", "D'", "B'", 'bL', 'sL', 'B', 'sL', "B'", "sL2'", "bL'"),
+                ('sR', 'R', 'bR', "R'", "bR'", "sR'", "U'", "bR'", "R'", 'bR', 'R', 'U', 'B2', "D2'", "B'", 'D', 'B', 'D', "B2'", "bL'", "sL'", "D'", 'sL', 'D', 'bL'),
+                ("R","U","R'","U'"),
+                ("R","U'","R'","U"),
+                ('D2', "B2'", 'bR2', "B2'", "bR'", 'B', 'bR', 'B', "bR2'", "U'", "bL'", "B'", 'bL', "B2'", 'U', "D2'", 'L', 'dL2', 'sL', "dL'", "sL'", "dL'", "L'", 'sL', 'D', 'dL', "D'", "dL'", "sL'", 'F2', "R2'", "dR2'", 'R2', 'dR', "R'", "dR'", "R'", 'dR2', 'D', 'sR', 'R', "sR'", 'R', "D'", "F2'"),
+                ("R'", "bR'", "U'", "bR'", 'U', 'bR2', 'R', "U'", "bR'", "bL'", 'bR', 'bL', 'U'),
+                ("D'", "dR'", "R'", "sR'", "bR'", 'sR', 'bR', 'R', "dR'", "sR'", "R'", "sR'", 'R', 'sR2', 'dR2', 'D')
 
 
             ],
             [
-                ("F2", "R2'", "F'", "R", "F", "R", "F2'","L'", "U'", "R'", "U", "R", "L"),
-                ("R","U","L","U'","R'","U","L'","U'"),
-                ('L2', "U'", "R'", 'U', 'L', "U'", 'R', 'U', 'L2'),
-                ("R'", "F'", 'R', 'bR', "R'", 'F2', 'R', "bR'", "R'", "F'", 'R'),
-                ('bR', "U'", "L'", 'U', "bR'", "R'", 'bR', "U'", 'L', 'U', "bR'", 'R'),
-                ('bL', "F'", "L'", "bL'", 'L', 'F', "L'", 'R', 'bR', 'bL', 'L', "bL'", "bR'", "R'"),
-                ('bR2', "U'", "L'", 'U', 'bR2', "R'", 'bR', "U'", 'L', 'U', "bR'", 'R', 'bR'),
-                ("F'", "L'", 'F', "R2'", "F'", 'L', 'F', 'R2'),
-                ('R', 'U', "L'", "U'", 'bR', "R'", 'U', 'L', "U'", 'R', "bR'", "R'"),
+                ("R'", "bR'", "U'", "bR'", 'U', 'bR2', 'R', "U'", "bR'", "bL'", 'bR', 'bL', 'U'),
             ],
             [],
             [],
@@ -149,14 +156,16 @@ def _default_initial_scramble_groups(size,puzzle_type):
                 ("URF'",),
                 ("UFL",),
                 ("UFL'",),
+                ("mUFL'","UBR","UFL'","UBR'","mUFL","UBR","UFL","UBR'"),
+                ("mUBR'", "DFR'", 'UBR', 'DFR', 'mUBR', "DFR'", "UBR'", 'DFR'),
+                ("URF","ULB","URF'","ULB","URF","ULB","URF'","ULB"),
+                ("URF","UFL","URF'","UFL'"),
+                ("URF","UBR","URF'","UBR'"),
+
+
                           
             ],
             [
-                ("UFL'", 'DFR', "UFL'", "DFR'", "UFL'", 'DFR', "UFL'", "DFR'", "DRB'", 'DLF', 'DRB', "mUBR'", "DRB'", "DLF'", 'DRB', 'UBR', 'DBL', "UBR'", 'DBL', 'UBR', 'DBL', "UBR'", 'DBL', 'mUBR'),
-                ("UBR'", 'UFL', "UBR'", "UFL'", "UBR'", 'UFL', "UBR'", "UFL'", 'mURF', "UFL'", 'DBL', "UFL'", "DBL'", "UFL'", 'DBL', "UFL'", "DBL'", "DLF'", 'URF', 'DLF', "mURF'", "DLF'", "URF'", 'DLF', 'DFR', 'UBR', "DFR'", 'UBR', 'DFR', 'UBR', "DFR'", 'UBR'),
-                ('mUBR', "UFL'", 'UBR', 'UFL', "mUBR'", "UBR'", "DBL'", "UBR'", 'DBL', 'DFR', 'UBR', "mULB'", "UBR'", "DFR'", 'UBR', 'mULB'),
-                ('DBL', 'UBR', 'DBL', "UBR'", 'DBL', "mULB'", "UBR'", 'DFR', 'UBR', 'mULB', "UBR'", "DFR'", 'UBR', "mUFL'", 'UBR', "UFL'", "UBR'", 'mUFL', 'UBR', 'UFL', "UBR'", 'mUFL', "UBR'", "UFL'", 'UBR', "mUFL'", "UBR'", 'UFL', 'UBR'),
-  
             ],
             [],
             [],
@@ -205,6 +214,36 @@ def _default_initial_scramble_groups(size,puzzle_type):
     if size == 3:
         return (
             [
+                (" R "," U "," R'"," U'"," F'"," U "," F "),
+                (' U ', ' R2', " U'", ' B2', ' U ', ' B2', ' U ', ' R2', " U'", ' B2', " U'", ' B2'),
+                (' B ', " U'", " B'", ' U ', " B'", ' R2', ' F ', " D'", " F'", ' R2', ' L ', ' B ', ' R ', " B'", " L'", ' B ', " R'"),
+                (" F'", " U ", " F ", " U ", " R ", " U'", " R'"),
+                (" S "," E "," S'"," E'"),
+                (' F ', " R'", " F'", ' R2', " U'", " R'", " F'", " U'", ' F ', ' R ', ' U ', " R'"),
+                (" M "," U "," M2"," U2"," M2"," U "," M'"),
+                (' B2', " L'", ' B2', ' D2', " F'", " R'", ' F ', ' D2', " B'", ' L ', ' B '),
+                (' F2', " R'", ' F ', ' D2', " B'", ' L ', ' B ', ' D2', ' F ', " L'", ' F ', ' R ', " F'", ' L '),
+                (' B2', ' U2', ' B ', ' U2', " B'", ' U2', ' B2', ' L2', " F'", " L'", ' F ', " L'", ' U2', ' R ', " B'", " R'", ' U2'),
+                (" L "," R'",' F ', " R'", " F'", ' R2', " U'", " R'", " F'", " U'", ' F ', ' R ', ' U ', " L'"),
+                (" U2"," R "," U "," R'"," U'"," F'"," U "," F "," U2"),
+                (" U2"," F'", " U ", " F ", " U ", " R ", " U'", " R'"," U2"),
+                (" F'", ' U2', ' F ', ' R ', ' U ', " R'", " U'", " F'", " U'", ' F '),
+                (" U'", " F'", ' U2', ' F ', ' R ', ' U ', " R'", " U'", " F'", " U'", ' F ', " U "),
+                (" U "," M "," R "," F "," D'"," R2"," U'"," F'"," D2"," B'"," R'"," F "," L'"),
+                (" R "," U2"," D'"," S "," U'"," F "," R "," L "," D'"," R "," B'"," F2"," U2"),
+                (" L "," R "," U2"," L'"," R'"),
+                (" F "," B "," U2"," F'"," B'"),
+                (" R "," U ") * 7,
+                (" F "," U ") * 7,
+                (" R "," U'") * 7,
+                (" F "," U'") * 7,
+                (' F2', " U'", " F'", ' U ', ' F ', ' R ', " U'", " R'", " F'", ' L ', " F'", " L'"),
+                (' B2', " L'", ' B2', ' D2', " F'", " R'", ' F ', ' D2', " B'", ' L ', ' B '),
+                (' F2', " R'", ' F ', ' D2', " B'", ' L ', ' B ', ' D2', ' F ', " L'", ' F ', ' R ', " F'", ' L '),
+                (' B2', ' U2', ' B ', ' U2', " B'", ' U2', ' B2', ' L2', " F'", " L'", ' F ', " L'", ' U2', ' R ', " B'", " R'", ' U2'),
+                (' L2', " U'", ' L ', " U'", ' F2', ' D ', " R'", " D'", ' F2', ' U2', ' L '),
+                (' B ', " L'", " F'", ' L ', " B'", ' L2', ' F ', " L'", " F'", ' L2', ' F '),
+                (" D'", ' L ', " U'", " L'", ' D ', ' U ', ' L2', " U'", " L'", ' U ', ' L2'),
 
             ],
             [
@@ -216,15 +255,49 @@ def _default_initial_scramble_groups(size,puzzle_type):
             [],
             [],
             )
-    elif size == 7:
+    elif size == 4:
         return (
             [
-                (" R ",),
-                ("2R ",),
-                (" M'",),
-                (" U ",),
-                ("2U ",),
-                (" E'",),
+                (" x2"," y "),
+                ("2U "," R "," U "," R'","2U'","2R "," U "," F "," U'"," F'","2R'","2D2"," F "," U2"," F'","2D2"," F ","2R2","2U ","2R2","2U'"," F'"),
+                (" R ","2U "," F ","2U'"," R'"," F'"),
+                (' B2', " L'", ' B2', ' D2', " F'", " R'", ' F ', ' D2', " B'", ' L ', ' B ') + ("2F2"," R2"," U2","2F2"," U2"," R2","2F2") + ("2U ","2R "," F ","2U'","2R'"," F'"),
+                (' B2', " L'", ' B2', ' D2', " F'", " R'", ' F ', ' D2', " B'", ' L ', ' B ') + ("2F2"," R2"," U2","2F2"," U2"," R2","2F2") + ("2F "," R'","2F'","2U'"," R ","2U "),
+            ],
+            [
+            ],
+            [
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [],
+            [],
+            [],
+        )
+
+
+    elif size == 7:
+        return (
+            [(" U "," R "),
+             (" U'"," F'"),
+             (" R'"," F "," R "," F'"),
+             (" F "," R'"," F'"," R "),
+             (" F "," E "," F "," E "," F'"," E "," F "," E "," F'"," E "," F'"),
+             ("2U ","3R "),
+             ("2U'","3F'"),
+             ("2R ","2L ","2F ","2B "),
+             ("2F'","2B'","2R'","2L'"),
+             (" y "," x2"),
+             (" y "," z2"),
+             ("2L2"," U ","3F2","3R2"," U'"),
+             ('2U2', " B'", '2R2', ' B ', ' R2', " B'", '2R2', " B'", "2U'", ' B2', '2U2', ' R2', "2D'", ' F2', '2U2', ' F2', ' R2', '2D ', ' R2'),
+             ('3U2', " B'", '3R2', ' B ', ' R2', " B'", '3R2', " B'", "3U'", ' B2', '3U2', ' R2', "3D'", ' F2', '3U2', ' F2', ' R2', '3D ', ' R2'),
+             (" M "," U "," M2"," U2"," M2"," U "," M'"),
+
 
             ],
             [
@@ -237,7 +310,7 @@ def _default_initial_scramble_groups(size,puzzle_type):
             [],
             [],
             [],
-            )
+        )
 
 
 def build_default_frame_config():
@@ -252,7 +325,7 @@ def build_default_frame_config():
     ai_count = len(ai_search_modes)
     is_search2_ai = [mode.startswith('search2') for mode in ai_search_modes]
     lrs = [
-        2.0e-6 if original_transformer_attention[ai_index] else (2.0e-6 if is_search2_ai[ai_index] else 1.0e-6)
+        1.0e-5 if original_transformer_attention[ai_index] else (2.0e-6 if is_search2_ai[ai_index] else 1.0e-6)
         for ai_index in range(ai_count)
     ]
     wdlrs = [
@@ -262,15 +335,16 @@ def build_default_frame_config():
     skip_search = [is_search2_ai[ai_index] for ai_index in range(ai_count)]
     weight_decay = [True] * ai_count
     search3_progress = [False] * 10 + [False,False,False,True,False,True,False,True,False,False]
-    residuals = list(range(ai_count))
-    search2_value_loss_types = ['myloss','myloss','myloss2','myloss2','myloss2','myloss2','myloss2','myloss2','myloss','myloss'] * 2
-    search2_value_loss_margins = [5.0] * ai_count
+    residuals = [True] * ai_count
+    #search2_value_loss_types = ['myloss','myloss','myloss2','myloss2','myloss2','myloss2','myloss2','myloss2','myloss','myloss'] * 2
+    search2_value_loss_types = ['myloss','myloss','myloss','myloss','myloss','myloss','myloss','myloss','myloss','myloss'] * 2
+
 
     adam = weight_decay.copy()
 
-    cube_size = 7
+    cube_size = 4
     puzzle_type = 'cube'
-    if cube_size >= 7:
+    if cube_size >= 6:
         transform_idx = [0,49,50,3,52,5,54,7,24,25] * 2
         flip_inside_idx = [False,True] * 10
     else:
@@ -282,6 +356,8 @@ def build_default_frame_config():
         priority_list = [['Corner', 'MidEdge']] * ai_count
         bootstrap_datas = None
         bootstrap_search3_datas = None
+        transform_idx = [0,1,2,3,4,5,6,7,8,9] * 2
+        flip_inside_idx = [False] * ai_count
     elif puzzle_type == 'pyraminx':
         priority_list = [['Corner', 'Edge', 'Center']] * ai_count
         bootstrap_datas = None
@@ -348,7 +424,6 @@ def build_default_frame_config():
             for ai_index in range(ai_count)
         ],
         search2_value_loss_types = search2_value_loss_types,
-        search2_value_loss_margins = search2_value_loss_margins,
         torch_training_devices = [
             'cpu' if original_transformer_attention[ai_index] else 'auto'
             for ai_index in range(ai_count)
