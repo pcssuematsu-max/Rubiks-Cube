@@ -18,6 +18,8 @@ Part code:
 - `EAll`: 同じ辺のMidEdgeと全Wingが同じ移動・向きを持つEdge bundle
 - `OE`: Master Pyraminx の Outer Edge
 - `CtrX`, `CtrPlus`, `CtrObl`, `CtrCore`: Rubik's Cube の Center family
+- `CtrBar`: Rubik's Cube の Center bar。`CtrX` / `CtrPlus` / `CtrObl` が同じbar単位で動く場合に統合する
+- `CtrMidBar`: Rubik's Cube の middle Center bar。`CtrPlus` が複数深さで同じbar単位に動く場合に統合する
 - `Ctr`, `CtrA`, `CtrB`: その他 puzzle の Center / Center orbit
 
 Operation:
@@ -50,10 +52,26 @@ C3[UBR>UFL>URF]
 C4s[UBR<>URF;UFL<>ULB]
 E2[UL>LU;UR>RU]
 ME3[UF>LU>RU]
+ME2[UB>BU;UF>FU]
+ME4s[UB<>UF;UL<>UR]
+ME4[DB>DF;DF>FU;UB>BU;UF>DB]
 C2[UBR>BRU;ULB>BUL]
 W2-2s[RF@U<>UF@R]
+W2-3[DB@R>UF@R>UB@R]
+W2-4[UL@B>UR@B>UL@F>UR@F]
+W2-4s[UL@B<>UR@F;UL@F<>UR@B]
+W2-6p[3x2][BR@D>LB@U>FL@D;BR@U>LB@D>FL@U]
+W2-6[BR@D>LB@U>FL@D>BR@U>LB@D>FL@U]
 EAll12[XY>YX]
+CtrX8p[4x2]+W2-2s[FL@U<>UF@L]
 CtrX3[F@2R.2U>U@2R.2F>R@2F.2D]
+CtrBar3[F@2L>U@2R>U@2L]
+CtrBar4s[D@2L<>U@2F;D@2R<>U@2B]
+CtrMidBar6p[3x2][F@D>U@F>F@L;F@R>F@U>U@B]
+CtrCore4[D>L>U>R]+ME2s[UL<>UR]
+C2[UBR>RFU]+CtrCore4[D>L>U>R]
+C4[DLF>FLU;UBR>RFU;UFL>LFD;URF>UBR]+EAll3[FL>FU>RU]
+CtrPlus12p[3x4]+ME5[DF>FU>FR>LF>BL]
 ```
 
 ## Position notation
@@ -70,6 +88,21 @@ CtrX3[F@2R.2U>U@2R.2F>R@2F.2D]
 Rubik's Cubeで同じ辺のMidEdgeと全Wingが同じ辺へ移動し、向きも一致する場合は、個別の `E` と `W` を `EAll` に統合する。
 例えば7x7 SuperFlipはMidEdgeとWingを分離せず、`EAll12[XY>YX]` とする。
 
+Rubik's Cubeで `CtrX` / `CtrPlus` / `CtrObl` が同じCenter bar単位で動く場合は、個別のcenter familyを連結せず `CtrBar` に統合する。
+例えば `OuterCenterBar-A` は `CtrBar3[F@2L>U@2R>U@2L]` とする。
+`F@2L` は F面の `2L` 列にあるcenter bar全体を表し、`CtrX`, `CtrPlus`, `CtrObl` の各深さは省略する。
+
+Rubik's Cubeで `CtrPlus` だけが複数深さにわたって同じmiddle bar単位で動く場合は、`CtrMidBar` に統合する。
+例えば `MidCenterBar(VV)` は `CtrMidBar6p[3x2][F@D>U@F>F@L;F@R>F@U>U@B]` とする。
+`F@D` は F面のD側 middle center barを表し、`2D` / `3D` などの深さは省略する。
+
+CenterとMidEdge、CenterとCornerが同時に動く手順は、effect componentを `+` で連結する。
+例えば `CenterMidEdgeSwap-QA` は `CtrCore4[D>L>U>R]+ME2s[UL<>UR]`、`CenterCornerSwap-A00` は `C2[UBR>RFU]+CtrCore4[D>L>U>R]` 系になる。
+
+Commutator系も同じくeffect componentを `+` で連結する。
+ただし `OutCommutator` などはサイズによって存在するWingが変わるため、3x3では `E3[...]`、7x7では `EAll3[...]` のように正規化先が変わる。
+source keyは大きいキューブ側の情報量が多い表記を置き、各サイズの初期化時に実効果へrenameする。
+
 一意なCenter IDによる同一face内の入れ替えは詳細解析には残すが、通常の色状態では観測できないため短縮名から除外する。
 
 ## Name collisions and migration
@@ -85,6 +118,22 @@ Rubik's Cubeで同じ辺のMidEdgeと全Wingが同じ辺へ移動し、向きも
 
 `myperms` に一致しない探索手順の `last_perms_key` は、その手順を直接解析し、`LP:` を先頭に付けた効果名を生成する。
 例えば `LP:C2[UBR>BRU;ULB>BUL]` のように表示する。
+
+## Representative transform points
+
+`Points.txt` は、同じmyperm系列のどの対称変換を代表 `#00` とするかを決めるための位置スコア定義として扱う。
+point計算は、原則として移動したパーツのsource positionを加算する。
+Cornerは `UFR` と `URF` のような向き違いを同じ物理位置として扱う。
+MidEdgeは `UF@M` を `UF` に正規化し、Wingは `UF@2R` / `UF@3R` を `UF@R` に正規化する。
+辺位置のpoint lookupは物理辺として扱うため、`RF@U` は `FR@U`、`LB@D` は `BL@D` のように反転辺ラベルでも同じ点数を参照する。
+Centerはプログラム側の `CtrX` / `CtrPlus` / `CtrObl` と `Points.txt` の `XCenter` / `PlusCenter` / `ObliqueCenter` を対応させる。
+Center座標は実装側と `Points.txt` 側で軸順が逆になる場合があるため、`R@2U.2F` と `R@2F.2U` は同じpoint entryとして扱う。
+短縮名から除外している同一face内Center permutationは、既定ではpoint計算からも除外する。
+通常の `Rubiks_3` 初期化では起動コストを避けるためpoint reindexを自動実行しない。
+検証や段階的なsource移行では、`Rubiks_3(size = 7, PointReindex = ("source-name", ...))` のように対象myperm系列だけを指定して、point最大のtransformを `#00` に再割当する。
+全系列を対象にする場合は `PointReindex = True` を指定できるが、全transformのpoint計算が必要なため重い。
+effect解析や局所レポート生成だけで固定myperms registryが不要な場合は、`Rubiks_3(size = 7, RegisterMyperms = False)` で SingleMove/Rotate 以外の myperms 登録と transform 展開をスキップできる。
+`tools/generate_myperm_point_report.py` はこの軽量初期化を使い、`--name-prefix` 指定時は対象系列だけを transform 展開する。
 
 提案一覧は次のコマンドで再生成できる。
 

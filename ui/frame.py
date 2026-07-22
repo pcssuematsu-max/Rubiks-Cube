@@ -155,6 +155,10 @@ class Frame(Tk.Frame):
             search2_max_frontiers = config.search2_max_frontiers,
             search2_torch_batch_sizes = config.search2_torch_batch_sizes,
             search2_value_loss_types = config.search2_value_loss_types,
+            search2_value_loss_margins = config.search2_value_loss_margins,
+            search2_rank_loss_mixes = config.search2_rank_loss_mixes,
+            search2_rank_loss_apply_types = config.search2_rank_loss_apply_types,
+            search3_rank_loss_mixes = config.search3_rank_loss_mixes,
             torch_training_devices = config.torch_training_devices,
             use_torch = config.use_torch,
             use_torch_predict = config.use_torch_predict,
@@ -347,7 +351,7 @@ class Frame(Tk.Frame):
             ais.append(Rubiks_3_AI(
                 mid_size,
                 cube_size = self.cube_size,
-                Activation = 'ReLU',
+                Activation = self._ai_activation(ai_index),
                 cube = self.cube,
                 search_mode = search_mode,
                 residual = self._ai_residual_enabled(ai_index, search_mode),
@@ -360,6 +364,11 @@ class Frame(Tk.Frame):
                 train_max_batches = self._ai_original_train_max_batches(ai_index),
                 train_recent_ratio = self._ai_original_train_recent_ratio(ai_index),
                 search2_value_loss_type = self._ai_search2_value_loss_type(ai_index),
+                search2_value_loss_margin = self._ai_search2_value_loss_margin(ai_index),
+                search2_rank_loss_mix = self._ai_search2_rank_loss_mix(ai_index),
+                search2_rank_loss_apply_type = self._ai_search2_rank_loss_apply_type(ai_index),
+                search3_rank_loss_mix = self._ai_search3_rank_loss_mix(ai_index),
+                w1_initializers = self._ai_w1_initializers(ai_index),
             ))
         return ais
 
@@ -368,6 +377,36 @@ class Frame(Tk.Frame):
         if loss_types is None:
             return 'myloss2'
         return loss_types[ai_index]
+
+    def _ai_search2_value_loss_margin(self, ai_index):
+        margins = getattr(self.config, 'search2_value_loss_margins', None)
+        if margins is None:
+            return 0.2
+        return margins[ai_index]
+
+    def _ai_search2_rank_loss_mix(self, ai_index):
+        mixes = getattr(self.config, 'search2_rank_loss_mixes', None)
+        if mixes is None:
+            return 0.0
+        return mixes[ai_index]
+
+    def _ai_search2_rank_loss_apply_type(self, ai_index):
+        apply_types = getattr(self.config, 'search2_rank_loss_apply_types', None)
+        if apply_types is None:
+            return 'distance'
+        return apply_types[ai_index]
+
+    def _ai_search3_rank_loss_mix(self, ai_index):
+        mixes = getattr(self.config, 'search3_rank_loss_mixes', None)
+        if mixes is None:
+            return 0.0
+        return mixes[ai_index]
+
+    def _ai_activation(self, ai_index):
+        activations = getattr(self.config, 'activations', None)
+        if activations is None:
+            return 'ReLU'
+        return activations[ai_index]
 
     def _ai_residual_enabled(self, ai_index, search_mode):
         residuals = getattr(self.config, 'residuals', None)
@@ -422,6 +461,12 @@ class Frame(Tk.Frame):
         if ratios is None:
             return None
         return float(ratios[ai_index])
+
+    def _ai_w1_initializers(self, ai_index):
+        initializers = getattr(self.config, 'w1_initializers', None)
+        if initializers is None:
+            return None
+        return initializers[ai_index]
 
     def _init_ai_state(self, cube_size, priority_list):
         """AI 配列数に依存する基本状態と myval AI を初期化する。"""
@@ -525,6 +570,10 @@ class Frame(Tk.Frame):
                                    search2_max_frontiers = None,
                                    search2_torch_batch_sizes = None,
                                    search2_value_loss_types = None,
+                                   search2_value_loss_margins = None,
+                                   search2_rank_loss_mixes = None,
+                                   search2_rank_loss_apply_types = None,
+                                   search3_rank_loss_mixes = None,
                                    torch_training_devices = None,
                                    use_torch = None,
                                    use_torch_predict = None,
@@ -570,6 +619,14 @@ class Frame(Tk.Frame):
                 self.AIs[i].search2_torch_batch_size = int(search2_torch_batch_sizes[i])
             if search2_value_loss_types is not None:
                 self.AIs[i].set_search2_value_loss_type(search2_value_loss_types[i])
+            if search2_value_loss_margins is not None:
+                self.AIs[i].set_search2_value_loss_margin(search2_value_loss_margins[i])
+            if search2_rank_loss_mixes is not None:
+                self.AIs[i].set_search2_rank_loss_mix(search2_rank_loss_mixes[i])
+            if search2_rank_loss_apply_types is not None:
+                self.AIs[i].set_search2_rank_loss_apply_type(search2_rank_loss_apply_types[i])
+            if search3_rank_loss_mixes is not None:
+                self.AIs[i].set_search3_rank_loss_mix(search3_rank_loss_mixes[i])
             if torch_training_devices is not None:
                 self.AIs[i].torch_training_device = str(torch_training_devices[i])
             if use_torch is not None:

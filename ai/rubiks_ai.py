@@ -17,13 +17,13 @@ except Exception:
 from cube.search2_engine import Search2Engine
 from cube.search3_engine import Search3Engine
 from cube.rubiks_cube import Rubiks_3
-from ai.layers import Affine, Batch_Normalization, Hard_Sigmoid, ReLU, ResidualBlock, Sigmoid, Transformer_SelfAttention, PieceTokenSelfAttention
-from ai.losses import BCEWithLogits, MyLoss2, Myloss, Q_loss, Soft_Target_Cross_Entropy, Softmax_Cross_Entropy
+from ai.layers import Affine, Batch_Normalization, Hard_Sigmoid, ReLU, ResidualBlock, Sigmoid, SiLU, Transformer_SelfAttention, PieceTokenSelfAttention
+from ai.losses import BCEWithLogits, MyLoss2, MyLoss2Pairwise, Myloss, Q_loss, Soft_Target_Cross_Entropy, Softmax_Cross_Entropy
 
 
 
 class Rubiks_3_AI:
-    def __init__(self,Mid,cube_size = 3,Activation = 'ReLU',cube = None,Batch_Normalize = False,search_mode = 'search2',residual = False,use_transformer_attention = False,transformer_attention_dim = 64,transformer_attention_token_mode = 'hidden',piece_attention_backward_chunk_size = 32,train_batch_size = None,train_state_batch_size = None,train_max_batches = None,train_recent_ratio = None,search2_value_loss_type = 'myloss2'):
+    def __init__(self,Mid,cube_size = 3,Activation = 'ReLU',cube = None,Batch_Normalize = False,search_mode = 'search2',residual = False,use_transformer_attention = False,transformer_attention_dim = 64,transformer_attention_token_mode = 'hidden',piece_attention_backward_chunk_size = 32,train_batch_size = None,train_state_batch_size = None,train_max_batches = None,train_recent_ratio = None,search2_value_loss_type = 'myloss2',search2_value_loss_margin = 0.2,search2_rank_loss_mix = 0.0,search2_rank_loss_apply_type = 'distance',search3_rank_loss_mix = 0.0,w1_initializers = None):
         if cube == None:
             self.cube = Rubiks_3(size = cube_size)
         else:
@@ -56,6 +56,14 @@ class Rubiks_3_AI:
         self.skip_difference = 10.0
         self.search_mode = search_mode
         self.search2_value_loss_type = self._normalize_search2_value_loss_type(search2_value_loss_type)
+        self.search2_value_loss_margin = float(search2_value_loss_margin)
+        self.search2_rank_loss_mix = float(search2_rank_loss_mix)
+        self.search2_rank_loss_apply_type = self._normalize_search2_rank_loss_apply_type(search2_rank_loss_apply_type)
+        self.search3_rank_loss_mix = float(search3_rank_loss_mix)
+        self._search2_value_has_rank_loss = False
+        self._search3_value_has_rank_loss = False
+        self._last_search2_value_loss_components = self._empty_search2_value_loss_components()
+        self.w1_initializers = w1_initializers
         self.value_target_gamma = (1/2) ** (1/20)
         
 
@@ -83,6 +91,7 @@ class Rubiks_3_AI:
         self.affines = ['Aff1']
         self.attentions = []
         self.BNs = []
+        self.activation_betas = []
         
         if self.use_piece_tokens:
             self.layers['Aff1'] = PieceTokenSelfAttention(self.ips,self.transformer_attention_mps,Mid[0],self._piece_token_feature_indices())
@@ -99,12 +108,7 @@ class Rubiks_3_AI:
             self.layers['BN1'] = Batch_Normalization(Mid[0])
             self.BNs.append('BN1')
         
-        if Activation == 'ReLU':
-            self.layers['Act1'] = ReLU()
-        elif Activation == 'Hard_Sigmoid':
-            self.layers['Act1'] = ReLU()
-        else:
-            self.layers['Act1'] = ReLU()
+        self.layers['Act1'] = self._create_trunk_activation(1)
         self._append_trunk_block(1)
         
         self.params['W1'] = self.layers['Aff1'].W
@@ -120,22 +124,19 @@ class Rubiks_3_AI:
             self.params['BNb1'] = self.layers['BN1'].b
             self.params['BNm1'] = self.layers['BN1'].m
             self.params['BNs1'] = self.layers['BN1'].s
+        self._register_activation_params('1', self.layers['Act1'])
 
         
         for i in range(1,len(Mid)):
             self.layers['Aff' + str(i+1)] = Affine(Mid[i-1],Mid[i])
             if self.Batch_Normalize:
                 self.layers['BN' + str(i+1)] =  Batch_Normalization(Mid[i])
-            if Activation == 'ReLU':
-                self.layers['Act' + str(i+1)] = ReLU()
-            elif Activation == 'Hard_Sigmoid':
-                self.layers['Act' + str(i+1)] = ReLU()
-            else:
-                self.layers['Act' + str(i+1)] = ReLU()
+            self.layers['Act' + str(i+1)] = self._create_trunk_activation(i+1)
             self._append_trunk_block(i+1)
 
             self.params['W' + str(i + 1)] = self.layers['Aff' + str(i + 1)].W
             self.params['B' + str(i + 1)] = self.layers['Aff' + str(i + 1)].B
+            self._register_activation_params(str(i + 1), self.layers['Act' + str(i + 1)])
             self.affines.append('Aff' + str(i+1))
             if self.Batch_Normalize:
                 self.params['BNg' + str(i+1)] = self.layers['BN' + str(i+1)].g
@@ -153,15 +154,8 @@ class Rubiks_3_AI:
             self.policy_BN = Batch_Normalization(Mid[-1] // 2)
             self.value_BN = Batch_Normalization(Mid[-1] // 2)
 
-        if Activation == 'ReLU':
-            self.policy_act = ReLU()
-            self.value_act = ReLU()
-        elif Activation == 'Hard_Sigmoid':
-            self.policy_act = Hard_Sigmoid()
-            self.value_act = Hard_Sigmoid()           
-        else:
-            self.policy_act = Sigmoid()
-            self.value_act = Sigmoid()
+        self.policy_act = self._create_head_activation()
+        self.value_act = self._create_head_activation()
         
         
         self.policy_layer = Affine(Mid[-1] // 2,self.ops)
@@ -172,6 +166,8 @@ class Rubiks_3_AI:
 
         self.params['WM_V'] = self.value_mid.W
         self.params['BM_V'] = self.value_mid.B
+        self._register_activation_params('P', self.policy_act)
+        self._register_activation_params('V', self.value_act)
 
 
         if self.Batch_Normalize:
@@ -191,18 +187,25 @@ class Rubiks_3_AI:
         self.params['WO_V'] = self.value_layer.W
         self.params['BO_V'] = self.value_layer.B
 
+
+
+
         if self.residual:
-            self.params['WO_P'] *= 0.2
+            self.params['W1'] *= 1
+            self.params['B1'][::2] = 1.0
 
         if self.use_transformer_attention:
-            self.params['W1'] *= 1.0
-            self.params['WQ1'] *= 1.0
-            self.params['WK1'] *= 1.0
-            self.params['WV1'] *= 5.0
-            self.params['WM_P'] *= 0.05
-            self.params['WO_V'] *= 1.0
+            self.params['WQ1'] *= 0.2
+            self.params['WK1'] *= 0.2
+            self.params['WV1'] *= 0.2
 
-    
+        if self.search_mode == "search3":
+            self.params['WO_V'] *= 0.05
+
+
+        self._apply_w1_initializers(w1_initializers)
+
+
 
         self.v = {}
         for key in self.params.keys():
@@ -226,7 +229,9 @@ class Rubiks_3_AI:
 
         self.losslayer = Softmax_Cross_Entropy()
         self.losslayer2 = self._create_search2_value_loss()
+        self.search2_rank_loss = Myloss()
         self.losslayer3 = BCEWithLogits()
+        self.search3_rank_loss = Myloss()
         self.losslayer4 = Soft_Target_Cross_Entropy()
         self.search3_value_sigmoid = Sigmoid()
 
@@ -269,6 +274,375 @@ class Rubiks_3_AI:
         self.search2_value_loss_type = self._normalize_search2_value_loss_type(loss_type)
         self.losslayer2 = self._create_search2_value_loss()
 
+    def set_search2_value_loss_margin(self, margin):
+        """Set the margin used by pairwise Search2 value training."""
+        self.search2_value_loss_margin = float(margin)
+        self.losslayer2 = self._create_search2_value_loss()
+
+    def set_search2_rank_loss_mix(self, mix):
+        """Set the auxiliary Search2 rank-loss coefficient."""
+        self.search2_rank_loss_mix = max(0.0,float(mix))
+
+    def set_search2_rank_loss_apply_type(self, apply_type):
+        """Set which Search2 value-loss modes receive the auxiliary rank loss."""
+        self.search2_rank_loss_apply_type = self._normalize_search2_rank_loss_apply_type(apply_type)
+
+    def set_search3_rank_loss_mix(self, mix):
+        """Set the auxiliary Search3 rank-loss coefficient."""
+        self.search3_rank_loss_mix = max(0.0,float(mix))
+
+    def _create_trunk_activation(self, index):
+        """Create the configured hidden activation for one trunk layer."""
+        activation = self._normalized_activation_name()
+        if activation == 'silu':
+            return SiLU(beta = 0.2)
+        if activation == 'relu':
+            return ReLU()
+        if activation == 'hard_sigmoid':
+            return Hard_Sigmoid()
+        if activation == 'sigmoid':
+            return Sigmoid()
+        return ReLU()
+
+    def _create_head_activation(self):
+        """Create policy/value hidden-head activation matching the configured activation."""
+        activation = self._normalized_activation_name()
+        if activation == 'silu':
+            return SiLU(beta = 1.0)
+        if activation == 'hard_sigmoid':
+            return Hard_Sigmoid()
+        if activation == 'sigmoid':
+            return Sigmoid()
+        return ReLU()
+
+    def _normalized_activation_name(self):
+        activation = str(getattr(self,'activation','ReLU')).strip().lower().replace('-','_')
+        aliases = {
+            'relu': 'relu',
+            'hard_sigmoid': 'hard_sigmoid',
+            'hardsigmoid': 'hard_sigmoid',
+            'sigmoid': 'sigmoid',
+            'silu': 'silu',
+            'swish': 'silu',
+            'silu_beta': 'silu',
+            'swish_beta': 'silu',
+        }
+        return aliases.get(activation, activation)
+
+    def _register_activation_params(self, suffix, layer):
+        """Expose trainable activation parameters through params/v/h."""
+        if not isinstance(layer, SiLU):
+            return
+        key = 'ActBeta' + str(suffix)
+        self.params[key] = layer.beta
+        self.activation_betas.append((key, layer))
+
+    def _apply_w1_initializers(self, initializers):
+        """Apply optional rule-based offsets to selected W1 columns at construction time."""
+        self._w1_initializer_summary = []
+        if not initializers:
+            return
+        if isinstance(initializers, dict):
+            initializer_list = [initializers]
+        else:
+            initializer_list = list(initializers)
+        records = self._w1_feature_records()
+        if not records:
+            raise ValueError('w1_initializers require piece-feature metadata for W1 columns.')
+        for initializer in initializer_list:
+            if initializer is None:
+                continue
+            self._apply_single_w1_initializer(initializer, records)
+
+    def _apply_single_w1_initializer(self, initializer, records):
+        if not isinstance(initializer, dict):
+            raise TypeError(f'w1 initializer must be a dict, got {type(initializer).__name__}')
+        selector = initializer.get('selector')
+        if selector is None:
+            selector = {
+                key: value
+                for key,value in initializer.items()
+                if key not in ('vector','scale','mode','basis','constant','random_normal','std')
+            }
+        columns = [
+            record['feature_index']
+            for record in records
+            if self._w1_record_matches_selector(record, selector)
+        ]
+        if not columns:
+            self._w1_initializer_summary.append({'matched': 0, 'selector': selector})
+            return
+        vector = self._w1_initializer_vector(initializer)
+        mode = str(initializer.get('mode','add')).lower()
+        if mode in ('add','plus','+='):
+            self.params['W1'][:,columns] += vector.reshape(-1,1)
+        elif mode in ('set','replace','='):
+            self.params['W1'][:,columns] = vector.reshape(-1,1)
+        else:
+            raise ValueError(f'unknown W1 initializer mode: {initializer.get("mode")}')
+        self._w1_initializer_summary.append({
+            'matched': len(columns),
+            'selector': selector,
+            'mode': mode,
+            'columns': tuple(columns),
+        })
+
+    def _w1_initializer_vector(self, initializer):
+        rows = int(self.params['W1'].shape[0])
+        scale = float(initializer.get('scale',1.0))
+        if 'vector' in initializer:
+            vector_value = initializer['vector']
+            if isinstance(vector_value, str):
+                normalized = vector_value.lower().replace('-','_')
+                if normalized in ('random','random_normal','normal'):
+                    std = float(initializer.get('std',1.0))
+                    return (np.random.randn(rows).astype('f') * std * scale).astype('f')
+                if normalized in ('ones','one'):
+                    return np.full(rows,scale,dtype = 'f')
+                if normalized in ('zeros','zero'):
+                    return np.zeros(rows,dtype = 'f')
+                raise ValueError(f'unknown W1 initializer vector string: {vector_value}')
+            vector = np.asarray(vector_value,dtype = 'f').reshape(-1)
+            if vector.size == 1:
+                return np.full(rows,float(vector[0]) * scale,dtype = 'f')
+            if vector.size != rows:
+                raise ValueError(f'W1 initializer vector length must be {rows}, got {vector.size}.')
+            return (vector * scale).astype('f')
+        if 'basis' in initializer:
+            vector = np.zeros(rows,dtype = 'f')
+            basis = initializer['basis']
+            if isinstance(basis, (int, np.integer)):
+                basis_indices = [int(basis)]
+            else:
+                basis_indices = [int(index) for index in basis]
+            for basis_index in basis_indices:
+                if basis_index < 0 or basis_index >= rows:
+                    raise ValueError(f'W1 initializer basis index out of range: {basis_index}')
+                vector[basis_index] = scale
+            return vector
+        if 'constant' in initializer:
+            return np.full(rows,float(initializer['constant']) * scale,dtype = 'f')
+        if 'random_normal' in initializer:
+            std = float(initializer.get('random_normal'))
+            return (np.random.randn(rows).astype('f') * std * scale).astype('f')
+        raise ValueError('W1 initializer requires vector, basis, constant, or random_normal.')
+
+    def _w1_record_matches_selector(self, record, selector):
+        selector = selector or {}
+        if not self._selector_bool_matches(record, selector, 'correct'):
+            return False
+        if not self._selector_string_matches(record['piece_type'], selector, ('piece_type','type')):
+            return False
+        if not self._selector_string_matches(record['solve_group'], selector, ('solve_group','group')):
+            return False
+        if not self._selector_position_matches(record['position_label'], selector):
+            return False
+        if not self._selector_feature_index_matches(record['feature_index'], selector):
+            return False
+        if not self._selector_colors_match(record['colors'], selector):
+            return False
+        return True
+
+    def _selector_bool_matches(self, record, selector, key):
+        if key not in selector:
+            return True
+        return bool(record.get(key,False)) == bool(selector[key])
+
+    def _selector_string_matches(self, value, selector, keys):
+        selected = None
+        for key in keys:
+            if key in selector:
+                selected = selector[key]
+                break
+        if selected is None:
+            return True
+        if isinstance(selected, str):
+            candidates = [selected]
+        else:
+            candidates = list(selected)
+        normalized_value = self._normalize_selector_text(value)
+        return any(self._normalize_selector_text(candidate) == normalized_value for candidate in candidates)
+
+    def _selector_position_matches(self, position_label, selector):
+        searchable_position = self._position_search_text(position_label)
+        if 'position' in selector:
+            selected = selector['position']
+            candidates = [selected] if isinstance(selected, str) else list(selected)
+            normalized_position = self._normalize_selector_text(position_label)
+            if not any(
+                self._normalize_selector_text(candidate) == normalized_position
+                or self._normalize_selector_text(candidate) in searchable_position
+                for candidate in candidates
+            ):
+                return False
+        if 'position_contains' in selector:
+            selected = selector['position_contains']
+            fragments = [selected] if isinstance(selected, str) else list(selected)
+            if not all(self._normalize_selector_text(fragment) in searchable_position for fragment in fragments):
+                return False
+        return True
+
+    def _position_search_text(self, position_label):
+        normalized_label = self._normalize_selector_text(position_label)
+        compact_aliases = []
+        text = str(position_label)
+        if '(' in text and ')' in text:
+            inside = text.split('(',1)[1].rsplit(')',1)[0]
+            parts = [part.split(':',1)[0].strip() for part in inside.split(',') if part.strip()]
+            if parts:
+                compact_aliases.append(''.join(parts))
+            if len(parts) >= 2:
+                compact_aliases.append(''.join([parts[1],parts[0]] + parts[2:]))
+        return normalized_label + ''.join(self._normalize_selector_text(alias) for alias in compact_aliases)
+
+    def _selector_feature_index_matches(self, feature_index, selector):
+        selected = selector.get('feature_indices', selector.get('columns', None))
+        if selected is None:
+            return True
+        if isinstance(selected, (int, np.integer)):
+            return int(feature_index) == int(selected)
+        return int(feature_index) in {int(value) for value in selected}
+
+    def _selector_colors_match(self, record_colors, selector):
+        record_sequence = tuple(self._normalize_color_code(color) for color in record_colors)
+        record_set = set(record_sequence)
+        if 'colors' in selector:
+            selected_values = self._selector_color_values(selector['colors'])
+            selected_set = {self._normalize_color_code(color) for color in selected_values}
+            if not selected_set.issubset(record_set):
+                return False
+        if 'exact_colors' in selector:
+            selected_values = self._selector_color_values(selector['exact_colors'])
+            selected_set = {self._normalize_color_code(color) for color in selected_values}
+            if selected_set != record_set:
+                return False
+        if 'color_sequence' in selector:
+            selected_sequence = tuple(self._normalize_color_code(color) for color in self._selector_color_values(selector['color_sequence']))
+            if selected_sequence != record_sequence:
+                return False
+        return True
+
+    def _selector_color_values(self, selected):
+        if not isinstance(selected, str):
+            return list(selected)
+        lowered = selected.strip().lower()
+        if lowered in ('red','orange','yellow','white','green','blue','masked'):
+            return [selected]
+        if ',' in selected:
+            return [value.strip() for value in selected.split(',') if value.strip()]
+        return list(selected.strip())
+
+    def _w1_feature_records(self):
+        if self._has_rubiks_piece_feature_layout():
+            return self._rubiks_w1_feature_records()
+        if hasattr(self.cube,'feature_index_to_piece_color'):
+            return self._generic_w1_feature_records()
+        return []
+
+    def _rubiks_w1_feature_records(self):
+        records = []
+        perfect_data = np.asarray(self.cube.perfect_data).reshape(-1)
+        solve_groups_by_feature = self._w1_solve_groups_by_feature()
+        offset = 0
+        for piece_index,piece in enumerate(self.cube.center_index):
+            position_label = self._w1_piece_position_label('Center',piece)
+            for local_index,color in enumerate(self.cube.colors):
+                feature_index = offset + local_index
+                records.append(self._w1_feature_record(
+                    feature_index,'Center',position_label,(color,),perfect_data,solve_groups_by_feature,piece_index,
+                ))
+            offset += 6
+        for piece_index,piece in enumerate(self.cube.edge_index):
+            position_label = self._w1_piece_position_label('Edge',piece)
+            for local_index,color in enumerate(self.cube.edge_colors):
+                feature_index = offset + local_index
+                records.append(self._w1_feature_record(
+                    feature_index,'Edge',position_label,tuple(color),perfect_data,solve_groups_by_feature,piece_index,
+                ))
+            offset += 24
+        for piece_index,piece in enumerate(self.cube.corner_index):
+            position_label = self._w1_piece_position_label('Corner',piece)
+            for local_index,color in enumerate(self.cube.corner_colors):
+                feature_index = offset + local_index
+                records.append(self._w1_feature_record(
+                    feature_index,'Corner',position_label,tuple(color),perfect_data,solve_groups_by_feature,piece_index,
+                ))
+            offset += 24
+        return records
+
+    def _generic_w1_feature_records(self):
+        perfect_data = np.asarray(getattr(self.cube,'perfect_data',np.zeros(self.ips))).reshape(-1)
+        solve_groups_by_feature = self._w1_solve_groups_by_feature()
+        records = []
+        for feature_index,piece_color in self.cube.feature_index_to_piece_color.items():
+            if feature_index < 0 or feature_index >= self.ips:
+                continue
+            piece,color = piece_color
+            piece_type = self._generic_piece_type(piece)
+            position_label = self._w1_piece_position_label(piece_type,piece)
+            records.append(self._w1_feature_record(
+                int(feature_index),
+                piece_type,
+                position_label,
+                tuple(str(value) for value in color),
+                perfect_data,
+                solve_groups_by_feature,
+                0,
+            ))
+        return records
+
+    def _w1_feature_record(self, feature_index, piece_type, position_label, colors, perfect_data, solve_groups_by_feature, piece_index):
+        return {
+            'feature_index': int(feature_index),
+            'piece_type': str(piece_type),
+            'position_label': str(position_label),
+            'colors': tuple(str(color) for color in colors),
+            'correct': bool(feature_index < perfect_data.size and perfect_data[feature_index] > 0.5),
+            'solve_group': solve_groups_by_feature.get(int(feature_index),''),
+            'piece_index': int(piece_index),
+        }
+
+    def _w1_piece_position_label(self, piece_type, piece):
+        if hasattr(self.cube,'piece_display_name'):
+            return self.cube.piece_display_name(piece_type,piece)
+        return f'{piece_type}-{tuple(piece)}'
+
+    def _generic_piece_type(self, piece):
+        for group_name,pieces in getattr(self.cube,'group_pieces',{}).items():
+            if piece in pieces:
+                return str(group_name)
+        return 'Piece'
+
+    def _w1_solve_groups_by_feature(self):
+        groups = {}
+        for group_name,group_vector in getattr(self.cube,'group_val',{}).items():
+            name = str(group_name)
+            if len(name) <= 1:
+                continue
+            mask = np.asarray(group_vector).reshape(-1) > 0
+            for feature_index in np.flatnonzero(mask):
+                groups.setdefault(int(feature_index),name)
+        return groups
+
+    def _normalize_selector_text(self, value):
+        return str(value).lower().replace(' ','').replace('_','').replace('-','')
+
+    def _normalize_color_code(self, value):
+        text = str(value).strip()
+        aliases = {
+            'red': 'R',
+            'orange': 'O',
+            'yellow': 'Y',
+            'white': 'W',
+            'green': 'G',
+            'blue': 'B',
+            'masked': 'X',
+        }
+        lowered = text.lower()
+        if lowered in aliases:
+            return aliases[lowered]
+        return text[:1].upper()
+
     def _normalize_search2_value_loss_type(self, loss_type):
         normalized = str(loss_type or 'myloss2').replace('_','').replace('-','').lower()
         aliases = {
@@ -276,16 +650,47 @@ class Rubiks_3_AI:
             'loss1': 'myloss',
             '1': 'myloss',
             'myloss2': 'myloss2',
+            'myloss2distance': 'myloss2',
+            'distance': 'myloss2',
             'loss2': 'myloss2',
             '2': 'myloss2',
+            'myloss2pairwise': 'myloss2_pairwise',
+            'pairwise': 'myloss2_pairwise',
+            'margin': 'myloss2_pairwise',
+            'loss2pairwise': 'myloss2_pairwise',
+            '2pairwise': 'myloss2_pairwise',
         }
         if normalized not in aliases:
             raise ValueError(f'unknown Search2 value loss type: {loss_type}')
         return aliases[normalized]
 
+    def _normalize_search2_rank_loss_apply_type(self, apply_type):
+        normalized = str(apply_type or 'distance').replace('_','').replace('-','').lower()
+        aliases = {
+            'none': 'none',
+            'off': 'none',
+            'false': 'none',
+            '0': 'none',
+            'distance': 'distance',
+            'myloss2': 'distance',
+            'softtarget': 'distance',
+            'pairwise': 'pairwise',
+            'myloss2pairwise': 'pairwise',
+            'margin': 'pairwise',
+            'all': 'all',
+            'both': 'all',
+            'true': 'all',
+            '1': 'all',
+        }
+        if normalized not in aliases:
+            raise ValueError(f'unknown Search2 rank loss apply type: {apply_type}')
+        return aliases[normalized]
+
     def _create_search2_value_loss(self):
         if self.search2_value_loss_type == 'myloss':
             return Myloss()
+        if self.search2_value_loss_type == 'myloss2_pairwise':
+            return MyLoss2Pairwise(self.search2_value_loss_margin)
         return MyLoss2()
         
         
@@ -323,7 +728,9 @@ class Rubiks_3_AI:
             self.value_layer,
             self.losslayer,
             self.losslayer2,
+            self.search2_rank_loss,
             self.losslayer3,
+            self.search3_rank_loss,
             self.losslayer4,
             self.search3_value_sigmoid,
         ]
@@ -335,7 +742,7 @@ class Rubiks_3_AI:
             gc.collect()
 
     def _clear_layer_cache(self, layer):
-        for attr_name in ['x','out','y','t','x_bar','train_m','train_s','tokens','Q','K','V','M','attended','attended_sum']:
+        for attr_name in ['x','out','y','t','x_bar','train_m','train_s','tokens','Q','K','V','M','s','attended','attended_sum']:
             if hasattr(layer,attr_name):
                 setattr(layer,attr_name,None)
 
@@ -689,22 +1096,78 @@ class Rubiks_3_AI:
         if value_columns is None:
             value_columns = np.arange(out.shape[1],dtype = 'i')
         self._search2_value_columns = np.asarray(value_columns,dtype = 'i')
+        self._search2_value_has_rank_loss = False
         if len(self._search2_value_columns) == 0:
             self._search2_value_indices = [0]
+            self._record_search2_value_loss_components('none',0.0,0.0,0.0,False)
             return (policy_loss,0.0)
         if value_indices is None:
             value_indices = indices
         self._search2_value_indices = value_indices
         if self.search2_value_loss_type == 'myloss2':
-            value_loss = self.losslayer2.forward(
+            base_loss = self.losslayer2.forward(
                 out[-1:,self._search2_value_columns],
                 value_indices,
                 value_steps_to_goal,
                 self.value_target_gamma,
             )
+            base_name = 'myloss2_distance'
         else:
-            value_loss = self.losslayer2.forward(out[-1:,self._search2_value_columns],value_indices)
+            base_loss = self.losslayer2.forward(out[-1:,self._search2_value_columns],value_indices)
+            base_name = self.search2_value_loss_type
+        value_loss = base_loss
+        rank_loss = 0.0
+        rank_scaled_loss = 0.0
+        rank_applied = False
+        if self._uses_search2_rank_mix() and self.search2_rank_loss_mix > 0.0:
+            rank_loss = self.search2_rank_loss.forward(
+                out[-1:,self._search2_value_columns],
+                value_indices,
+            )
+            rank_scaled_loss = self.search2_rank_loss_mix * rank_loss
+            value_loss += rank_scaled_loss
+            rank_applied = True
+            self._search2_value_has_rank_loss = True
+        self._record_search2_value_loss_components(base_name,base_loss,rank_loss,rank_scaled_loss,rank_applied)
         return (policy_loss,value_loss)
+
+    def _uses_search2_rank_mix(self):
+        if self.search2_rank_loss_apply_type == 'none':
+            return False
+        if self.search2_rank_loss_apply_type == 'all':
+            return self.search2_value_loss_type in ('myloss2','myloss2_pairwise')
+        if self.search2_rank_loss_apply_type == 'pairwise':
+            return self.search2_value_loss_type == 'myloss2_pairwise'
+        return self.search2_value_loss_type == 'myloss2'
+
+    def _empty_search2_value_loss_components(self):
+        return {
+            'loss_type': getattr(self,'search2_value_loss_type',''),
+            'base_name': '',
+            'base': 0.0,
+            'rank_raw': 0.0,
+            'rank_scaled': 0.0,
+            'total': 0.0,
+            'rank_mix': float(getattr(self,'search2_rank_loss_mix',0.0)),
+            'rank_apply_type': getattr(self,'search2_rank_loss_apply_type',''),
+            'rank_applied': False,
+            'margin': float(getattr(self,'search2_value_loss_margin',0.0)),
+        }
+
+    def _record_search2_value_loss_components(self, base_name, base_loss, rank_loss, rank_scaled_loss, rank_applied):
+        total = float(base_loss) + float(rank_scaled_loss)
+        self._last_search2_value_loss_components = {
+            'loss_type': self.search2_value_loss_type,
+            'base_name': str(base_name),
+            'base': float(base_loss),
+            'rank_raw': float(rank_loss),
+            'rank_scaled': float(rank_scaled_loss),
+            'total': total,
+            'rank_mix': float(self.search2_rank_loss_mix),
+            'rank_apply_type': self.search2_rank_loss_apply_type,
+            'rank_applied': bool(rank_applied),
+            'margin': float(self.search2_value_loss_margin),
+        }
 
     def _build_loss_indices(self, d_Lis):
         """Search2 loss 用に各サンプルの区切り index を作る。"""
@@ -854,13 +1317,15 @@ class Rubiks_3_AI:
             search3_inputs['policy_targets'],
             search3_inputs['value_targets'],
             search3_inputs['sample_weights'],
+            search3_inputs['value_indices'],
+            search3_inputs['policy_weights'],
         )
         self._last_search3_debug_summary = self._build_search3_debug_summary(out, search3_inputs)
         return losses
 
     def _build_search3_loss_inputs(self, d_lis, transformation = 0, flip_inside = False):
         """Search3 学習用の入力テンソル群を構築する。"""
-        x, policy_targets, value_targets, sample_weights, step_metadata = self._build_search3_tensors(
+        x, policy_targets, value_targets, sample_weights, policy_weights, step_metadata, value_indices = self._build_search3_tensors(
             d_lis,
             transformation = transformation,
             flip_inside = flip_inside,
@@ -870,19 +1335,28 @@ class Rubiks_3_AI:
             'policy_targets': policy_targets,
             'value_targets': value_targets,
             'sample_weights': sample_weights,
+            'policy_weights': policy_weights,
             'step_metadata': step_metadata,
+            'value_indices': value_indices,
         }
 
-    def _compute_search3_losses(self, out, policy_targets, value_targets, sample_weights):
+    def _compute_search3_losses(self, out, policy_targets, value_targets, sample_weights, value_indices = None, policy_weights = None):
         """Search3 用の policy loss と value loss を計算する。"""
-        policy_loss = self.losslayer4.forward(out[:-1],policy_targets,sample_weights)
+        if policy_weights is None:
+            policy_weights = sample_weights
+        policy_loss = self.losslayer4.forward(out[:-1],policy_targets,policy_weights)
         value_loss = self.losslayer3.forward(out[-1:],value_targets,sample_weights)
+        self._search3_value_has_rank_loss = False
+        if self.search3_rank_loss_mix > 0.0 and value_indices is not None and len(value_indices) > 1:
+            value_loss += self.search3_rank_loss_mix * self.search3_rank_loss.forward(out[-1:],value_indices)
+            self._search3_value_has_rank_loss = True
         return (policy_loss,value_loss)
 
     def _build_search3_debug_summary(self, out, search3_inputs):
         """Original Search3 の policy/value 予測と target の差分を短いログにまとめる。"""
         targets = search3_inputs['value_targets'].reshape(-1)
         weights = search3_inputs['sample_weights'].reshape(-1)
+        policy_weights = search3_inputs.get('policy_weights',search3_inputs['sample_weights']).reshape(-1)
         policy_targets = search3_inputs['policy_targets']
         metadata = search3_inputs.get('step_metadata',[])
         if targets.size == 0:
@@ -892,6 +1366,7 @@ class Rubiks_3_AI:
         predictions = 1.0 / (1.0 + np.exp(-raw_values))
         policy_probs = self._softmax_columns(out[:-1])
         policy_ce = -np.sum(policy_targets * np.log(policy_probs + 1.0e-7),axis = 0)
+        active_policy = policy_weights > 0.0
         target_moves = np.argmax(policy_targets,axis = 0)
         pred_moves = np.argmax(policy_probs,axis = 0)
         target_probs = policy_probs[target_moves,np.arange(policy_probs.shape[1])]
@@ -918,10 +1393,10 @@ class Rubiks_3_AI:
             ),
             (
                 'Search3 policy debug: '
-                f'top1={float(np.mean(top_hits)):.3f} '
-                f'target_prob={float(np.min(target_probs)):.4f}/{float(np.mean(target_probs)):.4f}/{float(np.max(target_probs)):.4f} '
-                f'ce={float(np.min(policy_ce)):.4f}/{float(np.mean(policy_ce)):.4f}/{float(np.max(policy_ce)):.4f} '
-                f'target_entropy={float(np.mean(target_entropy)):.4f}'
+                f'top1={self._masked_mean(top_hits,active_policy):.3f} '
+                f'target_prob={self._masked_min_mean_max_text(target_probs,active_policy)} '
+                f'ce={self._masked_min_mean_max_text(policy_ce,active_policy)} '
+                f'target_entropy={self._masked_mean(target_entropy,active_policy):.4f}'
             )
         ]
 
@@ -952,8 +1427,11 @@ class Rubiks_3_AI:
                     group = meta.get('top_group',None),
                 )
             )
-        worst_policy_indices = np.argsort(policy_ce)[-3:][::-1]
+        policy_rank_values = np.where(active_policy,policy_ce,-np.inf)
+        worst_policy_indices = np.argsort(policy_rank_values)[-3:][::-1]
         for rank, step_index in enumerate(worst_policy_indices,1):
+            if not active_policy[step_index]:
+                continue
             meta = metadata[step_index] if step_index < len(metadata) else {}
             lines.append(
                 '  policy_worst#{rank}: mode={mode} reason={reason} source_ok={source_ok} solve_ok={solve_ok} '
@@ -979,6 +1457,21 @@ class Rubiks_3_AI:
             )
         return '\n'.join(lines)
 
+    def _masked_mean(self, values, mask):
+        values = np.asarray(values)
+        mask = np.asarray(mask,dtype = bool)
+        if not np.any(mask):
+            return 0.0
+        return float(np.mean(values[mask]))
+
+    def _masked_min_mean_max_text(self, values, mask):
+        values = np.asarray(values)
+        mask = np.asarray(mask,dtype = bool)
+        if not np.any(mask):
+            return '0.0000/0.0000/0.0000'
+        selected = values[mask]
+        return f'{float(np.min(selected)):.4f}/{float(np.mean(selected)):.4f}/{float(np.max(selected)):.4f}'
+
     def _softmax_columns(self, x):
         shifted = x - np.max(x,axis = 0,keepdims = True)
         exp_x = np.exp(shifted)
@@ -991,23 +1484,29 @@ class Rubiks_3_AI:
         policy_targets = np.zeros((self.ops,total_steps),dtype = 'f')
         value_targets = np.zeros((1,total_steps),dtype = 'f')
         sample_weights = np.ones((1,total_steps),dtype = 'f')
+        policy_weights = np.ones((1,total_steps),dtype = 'f')
         step_metadata = []
+        value_indices = [0]
         step_index = 0
 
         for data_item in d_Lis:
+            item_start = step_index
             step_index = self._append_search3_item_tensors(
                 data_item,
                 x,
                 policy_targets,
                 value_targets,
                 sample_weights,
+                policy_weights,
                 step_metadata,
                 step_index,
                 transformation = transformation,
                 flip_inside = flip_inside,
             )
+            if step_index > item_start:
+                value_indices.append(step_index)
 
-        return x, policy_targets, value_targets, sample_weights, step_metadata
+        return x, policy_targets, value_targets, sample_weights, policy_weights, step_metadata, value_indices
 
     def _append_search3_item_tensors(
         self,
@@ -1016,6 +1515,7 @@ class Rubiks_3_AI:
         policy_targets,
         value_targets,
         sample_weights,
+        policy_weights,
         step_metadata,
         step_index,
         transformation = 0,
@@ -1039,6 +1539,7 @@ class Rubiks_3_AI:
                 policy_targets,
                 value_targets,
                 sample_weights,
+                policy_weights,
                 step_index,
                 transformation = transformation,
                 flip_inside = flip_inside,
@@ -1046,6 +1547,20 @@ class Rubiks_3_AI:
             step_metadata.append(self._search3_step_metadata(data_item, move_index, move_label))
             self.cube.make_move(move_label)
             step_index += 1
+
+        self._write_search3_terminal_tensors(
+            data_item,
+            rewards,
+            len(moves),
+            x,
+            policy_targets,
+            value_targets,
+            sample_weights,
+            policy_weights,
+            step_index,
+        )
+        step_metadata.append(self._search3_step_metadata(data_item, len(moves), '<terminal>'))
+        step_index += 1
 
         return step_index
 
@@ -1059,6 +1574,7 @@ class Rubiks_3_AI:
             'move_index': move_index,
             'move_label': move_label,
             'move_count': len(getattr(data_item,'moves',())),
+            'terminal': move_index >= len(getattr(data_item,'moves',())),
             'scramble_count': len(getattr(data_item,'scramble',())),
             'stored_value': stored_value,
             'perfect_key': getattr(data_item,'perfect_key',None),
@@ -1093,6 +1609,7 @@ class Rubiks_3_AI:
         policy_targets,
         value_targets,
         sample_weights,
+        policy_weights,
         step_index,
         transformation = 0,
         flip_inside = False,
@@ -1113,12 +1630,39 @@ class Rubiks_3_AI:
             len(moves),
         )
         sample_weights[0,step_index] = self._search3_step_weight(data_item,move_index)
+        policy_weights[0,step_index] = sample_weights[0,step_index]
+
+    def _write_search3_terminal_tensors(
+        self,
+        data_item,
+        rewards,
+        move_count,
+        x,
+        policy_targets,
+        value_targets,
+        sample_weights,
+        policy_weights,
+        step_index,
+    ):
+        """Search3 の終端状態を value 専用 target として書き込む。"""
+        x[:,step_index] = self.cube.makedata()
+        policy_targets[:,step_index] = self._uniform_search3_policy_target()
+        value_targets[0,step_index] = self._search3_value_target(
+            data_item,
+            rewards,
+            move_count,
+            move_count,
+        )
+        sample_weights[0,step_index] = self._search3_terminal_step_weight(data_item)
+        policy_weights[0,step_index] = 0.0
 
     def _search3_total_steps(self, d_Lis):
         """Search3 データ全体で必要な step 数を数える。"""
         total_steps = 0
         for data_item in d_Lis:
-            total_steps += len(data_item.moves)
+            move_count = len(data_item.moves)
+            if move_count > 0:
+                total_steps += move_count + 1
         return total_steps
 
     def _normalize_search3_policy_target(self, policy_target):
@@ -1191,12 +1735,12 @@ class Rubiks_3_AI:
         return policy_target
 
     def _search3_value_target(self, data_item, rewards, move_index, move_count):
-        explicit_target = self._explicit_search3_value_target(data_item,move_index)
+        explicit_target = self._explicit_search3_value_target(data_item,move_index,move_count)
         if explicit_target is not None:
             return explicit_target
         return self._fallback_search3_value_target(data_item,rewards,move_index,move_count)
 
-    def _explicit_search3_value_target(self, data_item, move_index):
+    def _explicit_search3_value_target(self, data_item, move_index, move_count):
         """data_item に value_targets があればそこから target を取る。"""
         value_targets = getattr(data_item,'value_targets',None)
         if value_targets is None:
@@ -1204,12 +1748,24 @@ class Rubiks_3_AI:
         normalized_targets = np.array(value_targets,dtype = 'f').reshape(-1)
         if move_index < normalized_targets.size:
             return normalized_targets[move_index]
+        if move_index == move_count and normalized_targets.size == move_count and normalized_targets.size > 0:
+            return self._terminal_target_from_previous(normalized_targets[-1])
         if normalized_targets.size > 0:
             return normalized_targets[-1]
         return None
 
+    def _terminal_target_from_previous(self, previous_target):
+        """旧Search3データの終端targetを、最後の手前targetから推定する。"""
+        gamma = max(float(getattr(self,'value_target_gamma',1.0)),1.0e-8)
+        return min(1.0,float(previous_target) / gamma)
+
     def _fallback_search3_value_target(self, data_item, rewards, move_index, move_count):
         """value_targets が無い場合の reward/value_trace/gamma fallback を返す。"""
+        if move_index == move_count:
+            terminal_target = self._fallback_search3_terminal_value_target(data_item,rewards,move_count)
+            if terminal_target is not None:
+                return terminal_target
+
         reward_target = self._reward_based_search3_value_target(rewards,move_index)
         if reward_target is not None:
             return reward_target
@@ -1219,6 +1775,21 @@ class Rubiks_3_AI:
             return bootstrap_target
 
         return self._discounted_search3_value_target(move_count,move_index)
+
+    def _fallback_search3_terminal_value_target(self, data_item, rewards, move_count):
+        if move_count < rewards.size:
+            return rewards[move_count]
+        if rewards.size == move_count and rewards.size > 0:
+            return self._terminal_target_from_previous(rewards[-1])
+        value_trace = getattr(data_item,'value_trace',[])
+        if len(value_trace) > move_count:
+            return value_trace[move_count]
+        if len(value_trace) > 0:
+            return value_trace[-1]
+        best_value = getattr(data_item,'best_value',None)
+        if best_value is not None:
+            return best_value
+        return None
 
     def _reward_based_search3_value_target(self, rewards, move_index):
         """reward 列があれば、その step に対応する target を返す。"""
@@ -1245,12 +1816,16 @@ class Rubiks_3_AI:
             return sample_weight * 0.7
         return sample_weight
 
+    def _search3_terminal_step_weight(self, data_item):
+        """終端状態はpolicyを持たないので、valueのアンカーとして通常weightを使う。"""
+        return getattr(data_item,'sample_weight',1.0)
+
     def learn_search3(self,transformation = 0,flip_inside = False, progress_callback = None):
         training_result = self._run_training_epochs(
             indices = self.indices_search3,
             data_source = self.datas_search3,
             train_batch = self._train_batch_search3,
-            state_count_fn = lambda data_item:max(1,len(data_item.moves)),
+            state_count_fn = lambda data_item:max(1,len(data_item.moves) + 1),
             transformation = transformation,
             flip_inside = flip_inside,
             progress_callback = progress_callback,
@@ -1317,6 +1892,7 @@ class Rubiks_3_AI:
                 epoch_state['new_indices'] += batch_indices
 
         epoch_state['new_indices'] += remainder_indices
+        self._report_final_search2_value_debug(epoch_state)
         return (
             epoch_state['err'],
             epoch_state['err2'],
@@ -1384,6 +1960,73 @@ class Rubiks_3_AI:
         if summary is None:
             return
         progress_callback(f'{summary}\n  batch_value_loss_per_item={float(value_loss):.6f}')
+
+    def _report_final_search2_value_debug(self, epoch_state):
+        """Search2 value loss の内訳を学習終了時に GUI log へ流す。"""
+        progress_callback = epoch_state.get('progress_callback')
+        if progress_callback is None:
+            return
+        epoch_components = epoch_state.get('search2_value_loss_components')
+        if not epoch_components:
+            return
+        progress_callback(
+            self._format_search2_value_loss_components(
+                epoch_components,
+                item_count = int(epoch_components.get('items',1) or 1),
+                label = 'final_avg',
+            )
+        )
+
+    def _format_search2_value_loss_components(self, components, item_count = 1, label = 'batch'):
+        denom = max(1,int(item_count))
+        base_name = components.get('base_name','value')
+        return (
+            f'Search2 value loss debug ({label}): '
+            f'type={components.get("loss_type","")} '
+            f'margin={float(components.get("margin",0.0)):.4f} '
+            f'rank_mix={float(components.get("rank_mix",0.0)):.4f} '
+            f'rank_apply={components.get("rank_apply_type","")} '
+            f'rank_applied={bool(components.get("rank_applied",False))}\n'
+            f'  {base_name}={float(components.get("base",0.0)) / denom:.6f} '
+            f'myloss_rank_raw={float(components.get("rank_raw",0.0)) / denom:.6f} '
+            f'myloss_rank_mix={float(components.get("rank_scaled",0.0)) / denom:.6f} '
+            f'total={float(components.get("total",0.0)) / denom:.6f}'
+        )
+
+    def _accumulate_search2_value_loss_components(self, epoch_state, components, item_count):
+        epoch_state['search2_value_loss_components'] = self._merged_search2_value_loss_components(
+            epoch_state.get('search2_value_loss_components'),
+            components,
+            item_count,
+        )
+
+    def _merged_search2_value_loss_components(self, current, components, item_count):
+        if components is None:
+            return current
+        if current is None:
+            current = {
+                'loss_type': components.get('loss_type',''),
+                'base_name': components.get('base_name',''),
+                'base': 0.0,
+                'rank_raw': 0.0,
+                'rank_scaled': 0.0,
+                'total': 0.0,
+                'rank_mix': float(components.get('rank_mix',0.0)),
+                'rank_apply_type': components.get('rank_apply_type',''),
+                'rank_applied': False,
+                'margin': float(components.get('margin',0.0)),
+                'items': 0,
+            }
+        for key in ('base','rank_raw','rank_scaled','total'):
+            current[key] = float(current.get(key,0.0)) + float(components.get(key,0.0))
+        current['items'] = int(current.get('items',0)) + int(item_count)
+        current['loss_type'] = components.get('loss_type',current.get('loss_type',''))
+        current['base_name'] = components.get('base_name',current.get('base_name',''))
+        current['rank_mix'] = float(components.get('rank_mix',current.get('rank_mix',0.0)))
+        current['rank_apply_type'] = components.get('rank_apply_type',current.get('rank_apply_type',''))
+        current['rank_applied'] = bool(current.get('rank_applied',False) or components.get('rank_applied',False))
+        current['margin'] = float(components.get('margin',current.get('margin',0.0)))
+        return current
 
     def _build_training_batches(self, indices, data_source, batch_size, state_batch_size, state_count_fn):
         """item数と必要ならstate数の上限に従って学習batchを作る。"""
@@ -1526,6 +2169,8 @@ class Rubiks_3_AI:
             'l1_indices': [],
             'epoch_index': 0,
             'progress_callback': None,
+            'last_batch_item_count': 0,
+            'search2_value_loss_components': None,
         }
 
     def _iter_training_batches(self, batches):
@@ -1563,6 +2208,7 @@ class Rubiks_3_AI:
         self._update_affine_momentum()
         self._update_attention_momentum()
         self._update_bn_momentum()
+        self._update_activation_momentum()
         self._apply_param_updates()
         self.clear_training_cache(collect = False)
         return (L0,L1), epoch_state
@@ -1575,6 +2221,8 @@ class Rubiks_3_AI:
         L0 = L[0] / len(d_lis)
         L1 = L[1] / len(d_lis)
         epoch_state = self._update_training_maxima(L0,L1,batch_indices,epoch_state)
+        epoch_state['last_batch_item_count'] = len(d_lis)
+        self._accumulate_search2_value_loss_components(epoch_state,self._last_search2_value_loss_components,len(d_lis))
 
         dO = self._backprop_policy()
         dO2 = self._backprop_value()
@@ -1584,6 +2232,7 @@ class Rubiks_3_AI:
         self._update_affine_momentum()
         self._update_attention_momentum()
         self._update_bn_momentum()
+        self._update_activation_momentum()
         self._apply_param_updates()
         self.clear_training_cache(collect = False)
         return (L0,L1), epoch_state
@@ -1595,6 +2244,7 @@ class Rubiks_3_AI:
 
     def _train_batch_torch(self, d_lis, batch_indices, transformation, flip_inside, epoch_state):
         loss_sum = [0.0,0.0]
+        component_sum = None
         grad_by_key = {}
         for micro_d_lis in self._iter_torch_training_microbatches(
             d_lis,
@@ -1608,11 +2258,20 @@ class Rubiks_3_AI:
             micro_losses,micro_grads = self._torch_search2_losses_and_grads(loss_inputs)
             loss_sum[0] += micro_losses[0]
             loss_sum[1] += micro_losses[1]
+            component_sum = self._merged_search2_value_loss_components(
+                component_sum,
+                self._last_search2_value_loss_components,
+                len(micro_d_lis),
+            )
             self._accumulate_torch_grad_dict(grad_by_key,micro_grads)
             del loss_inputs, micro_grads
         L0 = loss_sum[0] / len(d_lis)
         L1 = loss_sum[1] / len(d_lis)
+        if component_sum is not None:
+            self._last_search2_value_loss_components = component_sum
         epoch_state = self._update_training_maxima(L0,L1,batch_indices,epoch_state)
+        epoch_state['last_batch_item_count'] = len(d_lis)
+        self._accumulate_search2_value_loss_components(epoch_state,self._last_search2_value_loss_components,len(d_lis))
         self._apply_torch_grad_updates(grad_by_key)
         del grad_by_key
         self.clear_training_cache(collect = False)
@@ -1626,7 +2285,7 @@ class Rubiks_3_AI:
         debug_out = None
         for micro_d_lis in self._iter_torch_training_microbatches(
             d_lis,
-            lambda data_item:max(1,len(data_item.moves)),
+            lambda data_item:max(1,len(data_item.moves) + 1),
         ):
             search3_inputs = self._build_search3_loss_inputs(
                 micro_d_lis,
@@ -1756,12 +2415,46 @@ class Rubiks_3_AI:
     def _torch_search2_value_loss(self, values, indices, value_columns = None, value_steps_to_goal = None):
         if value_columns is not None:
             if len(value_columns) == 0:
+                self._record_search2_value_loss_components('none',0.0,0.0,0.0,False)
                 return torch.zeros((), dtype = values.dtype, device = values.device)
             column_tensor = torch.as_tensor(value_columns, dtype = torch.long, device = values.device)
             values = values.index_select(0,column_tensor)
         if self.search2_value_loss_type == 'myloss':
-            return self._torch_search2_value_loss_softmax(values,indices)
-        return self._torch_search2_value_loss_distance(values,indices,value_steps_to_goal)
+            value_loss = self._torch_search2_value_loss_softmax(values,indices)
+            self._record_search2_value_loss_components(
+                'myloss',
+                self._torch_loss_float(value_loss),
+                0.0,
+                0.0,
+                False,
+            )
+            return value_loss
+        if self.search2_value_loss_type == 'myloss2_pairwise':
+            value_loss = self._torch_search2_value_loss_pairwise(values,indices)
+            base_name = 'myloss2_pairwise'
+        else:
+            value_loss = self._torch_search2_value_loss_distance(values,indices,value_steps_to_goal)
+            base_name = 'myloss2_distance'
+        base_loss = value_loss
+        rank_loss = torch.zeros((), dtype = values.dtype, device = values.device)
+        rank_scaled_loss = torch.zeros((), dtype = values.dtype, device = values.device)
+        rank_applied = False
+        if self.search2_rank_loss_mix > 0.0 and self._uses_search2_rank_mix():
+            rank_loss = self._torch_search2_value_loss_softmax(values,indices)
+            rank_scaled_loss = self.search2_rank_loss_mix * rank_loss
+            value_loss = value_loss + rank_scaled_loss
+            rank_applied = True
+        self._record_search2_value_loss_components(
+            base_name,
+            self._torch_loss_float(base_loss),
+            self._torch_loss_float(rank_loss),
+            self._torch_loss_float(rank_scaled_loss),
+            rank_applied,
+        )
+        return value_loss
+
+    def _torch_loss_float(self, loss):
+        return float(loss.detach().cpu().item())
 
     def _torch_search2_value_loss_softmax(self, values, indices):
         total_loss = torch.zeros((), dtype = values.dtype, device = values.device)
@@ -1800,6 +2493,22 @@ class Rubiks_3_AI:
             return torch.zeros((), dtype = values.dtype, device = values.device)
         return total_loss
 
+    def _torch_search2_value_loss_pairwise(self, values, indices):
+        total_loss = torch.zeros((), dtype = values.dtype, device = values.device)
+        has_loss = False
+        margin = torch.as_tensor(self.search2_value_loss_margin, dtype = values.dtype, device = values.device)
+        for index in range(len(indices) - 1):
+            start = indices[index]
+            end = indices[index + 1]
+            if end - start <= 1:
+                continue
+            diffs = values[start + 1:end] - values[start:end - 1]
+            total_loss = total_loss + torch.sum(F_torch.softplus(margin - diffs))
+            has_loss = True
+        if not has_loss:
+            return torch.zeros((), dtype = values.dtype, device = values.device)
+        return total_loss
+
     def _torch_search3_losses_and_grads(self, search3_inputs):
         device = self._torch_training_device()
         params = self._torch_trainable_params(device)
@@ -1807,15 +2516,21 @@ class Rubiks_3_AI:
         policy_targets = torch.as_tensor(search3_inputs['policy_targets'], dtype = torch.float32, device = device)
         value_targets = torch.as_tensor(search3_inputs['value_targets'], dtype = torch.float32, device = device)
         sample_weights = torch.as_tensor(search3_inputs['sample_weights'], dtype = torch.float32, device = device)
+        policy_weights = torch.as_tensor(search3_inputs['policy_weights'], dtype = torch.float32, device = device)
         out = self._torch_forward_policy_value(x, params)
         policy_log_probs = F_torch.log_softmax(out[:-1],dim = 0)
-        policy_loss = -torch.sum(sample_weights * policy_targets * policy_log_probs)
+        policy_loss = -torch.sum(policy_weights * policy_targets * policy_log_probs)
         value_loss = F_torch.binary_cross_entropy_with_logits(
             out[-1:],
             value_targets,
             weight = sample_weights,
             reduction = 'sum',
         )
+        if self.search3_rank_loss_mix > 0.0 and len(search3_inputs['value_indices']) > 1:
+            value_loss = value_loss + self.search3_rank_loss_mix * self._torch_search2_value_loss_softmax(
+                out[-1],
+                search3_inputs['value_indices'],
+            )
         total_loss = policy_loss + value_loss
         total_loss.backward()
         return (
@@ -1853,8 +2568,12 @@ class Rubiks_3_AI:
 
     def _is_non_trainable_param(self, key):
         if key == 'BO_V':
-            return True
+            return not self._is_value_output_bias_trainable()
         return key.startswith('BNm') or key.startswith('BNs')
+
+    def _is_value_output_bias_trainable(self):
+        """Search3 value BCE can need a global logit shift; keep Search2 behavior unchanged."""
+        return getattr(self,'search_mode',None) == 'search3'
 
     def _update_training_maxima(self, l0, l1, batch_indices, epoch_state):
         """最大損失 batch の記録を更新する。"""
@@ -1889,6 +2608,12 @@ class Rubiks_3_AI:
         if columns is None:
             return self.losslayer2.backward()
         d_selected = self.losslayer2.backward() if len(columns) > 0 else np.zeros((1,0),dtype = 'f')
+        if (
+            len(columns) > 0
+            and self._uses_search2_rank_mix()
+            and self._search2_value_has_rank_loss
+        ):
+            d_selected = d_selected + self.search2_rank_loss_mix * self.search2_rank_loss.backward()
         d_full = np.zeros((1,output_size),dtype = d_selected.dtype if d_selected.size > 0 else 'f')
         if len(columns) > 0:
             d_full[:,columns] = d_selected
@@ -1905,6 +2630,8 @@ class Rubiks_3_AI:
 
     def _backprop_value_search3(self):
         dO2 = self.losslayer3.backward()
+        if self._search3_value_has_rank_loss:
+            dO2 = dO2 + self.search3_rank_loss_mix * self.search3_rank_loss.backward()
         dO2 = self.value_layer.backward(dO2)
         dO2 = self.value_act.backward(dO2)
         if self.Batch_Normalize:
@@ -1942,7 +2669,12 @@ class Rubiks_3_AI:
 
     def _update_output_momentum(self):
         self._accumulate_affine_optimizer_state(self.policy_layer,'WO_P','BO_P')
-        self._accumulate_affine_optimizer_state(self.value_layer,'WO_V','BO_V',update_bias = False)
+        self._accumulate_affine_optimizer_state(
+            self.value_layer,
+            'WO_V',
+            'BO_V',
+            update_bias = self._is_value_output_bias_trainable(),
+        )
         self._accumulate_affine_optimizer_state(self.policy_mid,'WM_P','BM_P')
         self._accumulate_affine_optimizer_state(self.value_mid,'WM_V','BM_V')
 
@@ -1951,11 +2683,11 @@ class Rubiks_3_AI:
             self._accumulate_bn_optimizer_state(self.value_BN,'BNgV','BNbV')
 
     def _update_affine_momentum(self):
-        if self.weight_decay:
-            self._apply_weight_decay('WO_P')
-            self._apply_weight_decay('WO_V')
-            self._apply_weight_decay('WM_P')
-        
+        #if self.weight_decay:
+        #    self._apply_weight_decay('WO_P')
+        #    self._apply_weight_decay('WO_V')
+        #    self._apply_weight_decay('WM_P')
+
         for key in self.affines:
             if self.weight_decay:
                 self._apply_weight_decay('W' + key[-1])
@@ -1985,6 +2717,10 @@ class Rubiks_3_AI:
                 'BNg' + key[-1],
                 'BNb' + key[-1],
             )
+
+    def _update_activation_momentum(self):
+        for key,layer in self.activation_betas:
+            self._accumulate_weight_optimizer_state(key,layer.dbeta)
 
     def _apply_param_updates(self):
         for key in self.v.keys():
@@ -2153,7 +2889,7 @@ class Rubiks_3_AI:
                 out = W @ out + B.unsqueeze(1)
             if i == 1 and 'WQ1' in params and not getattr(self,'use_piece_tokens',False):
                 out = self._torch_self_attention(out, params, suffix = '1')
-            out = self._torch_activation(out)
+            out = self._torch_activation(out, params = params, suffix = str(i))
             if self.residual and out.shape == residual.shape:
                 out = out + residual
 
@@ -2202,16 +2938,24 @@ class Rubiks_3_AI:
     def _torch_forward_head(self, trunk_out, params, mid_key, mid_bias_key, out_key, out_bias_key):
         """policy/value head を 1 本分だけ順伝播する。"""
         head_out = params[mid_key] @ trunk_out + params[mid_bias_key].unsqueeze(1)
-        head_out = self._torch_head_act(head_out)
+        head_out = self._torch_head_act(head_out, params, out_key[-1])
         return params[out_key] @ head_out + params[out_bias_key].unsqueeze(1)
 
-    def _torch_head_act(self, x):
-        return self._torch_activation(x)
+    def _torch_head_act(self, x, params, suffix):
+        return self._torch_activation(x, params = params, suffix = suffix)
 
-    def _torch_activation(self, x):
-        if self.activation == 'ReLU':
+    def _torch_activation(self, x, params = None, suffix = None):
+        activation = self._normalized_activation_name()
+        if activation == 'silu':
+            beta = None
+            if params is not None and suffix is not None:
+                beta = params.get('ActBeta' + str(suffix))
+            if beta is None:
+                beta = torch.as_tensor([1.0], dtype = x.dtype, device = x.device)
+            return x * torch.sigmoid(beta.reshape(1,1) * x)
+        if activation == 'relu':
             return F_torch.relu(x)
-        elif self.activation == 'Hard_Sigmoid':
+        elif activation == 'hard_sigmoid':
             return F_torch.hardsigmoid(x)
         else:
             return torch.sigmoid(x)

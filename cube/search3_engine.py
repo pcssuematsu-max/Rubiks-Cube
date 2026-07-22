@@ -483,7 +483,7 @@ class Node:
     def __init__(self, P, state_key=None, value=None, C=0.05):
         self.P = P
         self.state_key = state_key
-        self.value = value
+        self.value = sigmoid(value)
         self.val = np.zeros_like(P, dtype='f')
         self.visited = np.zeros_like(P, dtype='i')
         self.blocked = np.zeros_like(P, dtype=bool)
@@ -502,7 +502,7 @@ class Node:
                 masked[invalid_index] = True
         if np.all(masked):
             return None
-        average_value = np.full_like(self.P, 1.0, dtype='f')
+        average_value = np.full_like(self.P, self.value, dtype='f')
         np.divide(self.val, self.visited, out=average_value, where=self.visited != 0)
         self.score = average_value + self.C * self.P * np.sqrt(max(1, self.S)) / (1 + self.visited)
         self.score[masked] = -np.inf

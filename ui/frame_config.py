@@ -45,6 +45,7 @@ class FrameConfig:
     skip_search: Optional[Sequence[bool]] = None
     weight_decay: Optional[Sequence[bool]] = None
     adam: Optional[Sequence[bool]] = None
+    activations: Optional[Sequence[str]] = None
 
     # Additional runtime coefficients for each AI.
     lr_vs: Optional[Sequence[float]] = None
@@ -54,6 +55,10 @@ class FrameConfig:
     search2_max_frontiers: Optional[Sequence[int]] = None
     search2_torch_batch_sizes: Optional[Sequence[int]] = None
     search2_value_loss_types: Optional[Sequence[str]] = None
+    search2_value_loss_margins: Optional[Sequence[float]] = None
+    search2_rank_loss_mixes: Optional[Sequence[float]] = None
+    search2_rank_loss_apply_types: Optional[Sequence[str]] = None
+    search3_rank_loss_mixes: Optional[Sequence[float]] = None
     torch_training_devices: Optional[Sequence[str]] = None
     use_torch: Optional[Sequence[bool]] = None
     use_torch_predict: Optional[Sequence[bool]] = None
@@ -68,6 +73,7 @@ class FrameConfig:
     original_train_state_batch_sizes: Optional[Sequence[int]] = None
     original_train_max_batches: Optional[Sequence[int]] = None
     original_train_recent_ratios: Optional[Sequence[float]] = None
+    w1_initializers: Optional[Sequence[Any]] = None
     max_search2_data: int = 8000
     max_search3_data_per_ai: int = 2000
 
@@ -88,6 +94,7 @@ class FrameConfig:
         self._validate_ai_sequence_length('skip_search', self.skip_search, ai_count)
         self._validate_ai_sequence_length('weight_decay', self.weight_decay, ai_count)
         self._validate_ai_sequence_length('adam', self.adam, ai_count)
+        self._validate_ai_sequence_length('activations', self.activations, ai_count)
         self._validate_ai_sequence_length('lr_vs', self.lr_vs, ai_count)
         self._validate_ai_sequence_length('lr_hs', self.lr_hs, ai_count)
         self._validate_ai_sequence_length('out_cs', self.out_cs, ai_count)
@@ -95,6 +102,10 @@ class FrameConfig:
         self._validate_ai_sequence_length('search2_max_frontiers', self.search2_max_frontiers, ai_count)
         self._validate_ai_sequence_length('search2_torch_batch_sizes', self.search2_torch_batch_sizes, ai_count)
         self._validate_ai_sequence_length('search2_value_loss_types', self.search2_value_loss_types, ai_count)
+        self._validate_ai_sequence_length('search2_value_loss_margins', self.search2_value_loss_margins, ai_count)
+        self._validate_ai_sequence_length('search2_rank_loss_mixes', self.search2_rank_loss_mixes, ai_count)
+        self._validate_ai_sequence_length('search2_rank_loss_apply_types', self.search2_rank_loss_apply_types, ai_count)
+        self._validate_ai_sequence_length('search3_rank_loss_mixes', self.search3_rank_loss_mixes, ai_count)
         self._validate_ai_sequence_length('torch_training_devices', self.torch_training_devices, ai_count)
         self._validate_ai_sequence_length('use_torch', self.use_torch, ai_count)
         self._validate_ai_sequence_length('use_torch_predict', self.use_torch_predict, ai_count)
@@ -109,6 +120,7 @@ class FrameConfig:
         self._validate_ai_sequence_length('original_train_state_batch_sizes', self.original_train_state_batch_sizes, ai_count)
         self._validate_ai_sequence_length('original_train_max_batches', self.original_train_max_batches, ai_count)
         self._validate_ai_sequence_length('original_train_recent_ratios', self.original_train_recent_ratios, ai_count)
+        self._validate_ai_sequence_length('w1_initializers', self.w1_initializers, ai_count)
         self._validate_ai_sequence_length('transform_idx', self.transform_idx, ai_count)
         self._validate_ai_sequence_length('flip_inside_idx', self.flip_inside_idx, ai_count)
         self._validate_ai_sequence_length('priority_list', self.priority_list, ai_count)

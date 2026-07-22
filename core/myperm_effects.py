@@ -226,6 +226,9 @@ class MypermEffect:
         )
         if not visible_components:
             return "Identity"
+        center_bar_name = self._center_bar_name(visible_components, max_positions)
+        if center_bar_name:
+            return center_bar_name
         name = "+".join(
             component.concise_name(max_positions = max_positions)
             for component in visible_components
@@ -236,6 +239,198 @@ class MypermEffect:
                 for component in visible_components
             )
         return name
+
+    def _center_bar_name(self, components, max_positions):
+        part_codes = {component.part_code for component in components}
+        if part_codes == {"CtrPlus"}:
+            return self._center_mid_bar_name(components, max_positions)
+        if part_codes != {"CtrX", "CtrPlus", "CtrObl"}:
+            return ""
+        if any(component.group != "Center" or component.piece_size != 1 for component in components):
+            return ""
+
+        transfers = tuple(transfer for component in components for transfer in component.transfers)
+        bar_by_position = self._center_bar_positions(transfers)
+        if not bar_by_position:
+            return ""
+        return self._center_bar_name_from_position_map(
+            transfers,
+            bar_by_position,
+            prefix = "CtrBar",
+            max_positions = max_positions,
+        )
+
+    def _center_mid_bar_name(self, components, max_positions):
+        if any(component.group != "Center" or component.piece_size != 1 for component in components):
+            return ""
+
+        transfers = tuple(transfer for component in components for transfer in component.transfers)
+        bar_by_position = self._center_mid_bar_positions(transfers)
+        if not bar_by_position:
+            return ""
+        return self._center_bar_name_from_position_map(
+            transfers,
+            bar_by_position,
+            prefix = "CtrMidBar",
+            max_positions = max_positions,
+        )
+
+    def _center_bar_name_from_position_map(self, transfers, bar_by_position, prefix, max_positions):
+        bar_map = {}
+        for transfer in transfers:
+            source_bar = bar_by_position.get(transfer.source)
+            destination_bar = bar_by_position.get(transfer.destination)
+            if source_bar is None or destination_bar is None:
+                return ""
+            if source_bar == destination_bar:
+                continue
+            if source_bar in bar_map and bar_map[source_bar] != destination_bar:
+                return ""
+            bar_map[source_bar] = destination_bar
+
+        if not bar_map:
+            return ""
+        if not set(bar_map.values()).issubset(set(bar_map)):
+            return ""
+
+        cycles = self._mapping_cycles(bar_map)
+        if not cycles:
+            return ""
+        cycle_lengths = tuple(sorted(len(cycle) for cycle in cycles))
+        moved_count = sum(cycle_lengths)
+        if cycle_lengths and all(length == 2 for length in cycle_lengths):
+            operation = f"{moved_count}s"
+        elif len(cycles) == 1:
+            operation = str(cycle_lengths[0])
+        else:
+            operation = f"{moved_count}p[{self._format_cycle_shape(cycle_lengths)}]"
+
+        positions = ""
+        if moved_count <= max_positions:
+            positions = self._format_bar_cycles(cycles)
+        return f"{prefix}{operation}{positions}"
+
+    def _center_bar_positions(self, transfers):
+        positions = {
+            position
+            for transfer in transfers
+            for position in (transfer.source, transfer.destination)
+        }
+        candidate_counts = defaultdict(int)
+        candidates_by_position = {}
+        for position in positions:
+            candidates = self._center_bar_candidates(position)
+            if not candidates:
+                return {}
+            candidates_by_position[position] = candidates
+            for candidate in candidates:
+                candidate_counts[candidate] += 1
+
+        bar_by_position = {}
+        for position, candidates in candidates_by_position.items():
+            valid_candidates = [
+                candidate
+                for candidate in candidates
+                if candidate_counts[candidate] >= 3
+            ]
+            if len(valid_candidates) != 1:
+                return {}
+            bar_by_position[position] = valid_candidates[0]
+        return bar_by_position
+
+    def _center_bar_candidates(self, position):
+        if "@" not in position:
+            return ()
+        face, coordinates = position.split("@", 1)
+        parts = coordinates.split(".")
+        if len(parts) != 2:
+            return ()
+        return tuple(
+            f"{face}@{coordinate}"
+            for coordinate in parts
+            if coordinate not in {"M", "E", "S"}
+        )
+
+    def _center_mid_bar_positions(self, transfers):
+        positions = {
+            position
+            for transfer in transfers
+            for position in (transfer.source, transfer.destination)
+        }
+        candidate_counts = defaultdict(int)
+        candidates_by_position = {}
+        for position in positions:
+            candidates = self._center_mid_bar_candidates(position)
+            if not candidates:
+                return {}
+            candidates_by_position[position] = candidates
+            for candidate in candidates:
+                candidate_counts[candidate] += 1
+
+        bar_by_position = {}
+        for position, candidates in candidates_by_position.items():
+            valid_candidates = [
+                candidate
+                for candidate in candidates
+                if candidate_counts[candidate] >= 2
+            ]
+            if len(valid_candidates) != 1:
+                return {}
+            bar_by_position[position] = valid_candidates[0]
+        return bar_by_position
+
+    def _center_mid_bar_candidates(self, position):
+        if "@" not in position:
+            return ()
+        face, coordinates = position.split("@", 1)
+        parts = coordinates.split(".")
+        if len(parts) != 2:
+            return ()
+        candidates = []
+        for coordinate in parts:
+            if coordinate in {"M", "E", "S"}:
+                continue
+            axis = coordinate.lstrip("0123456789")
+            if not axis:
+                return ()
+            candidates.append(f"{face}@{axis}")
+        return tuple(candidates)
+
+    def _mapping_cycles(self, mapping):
+        cycles = []
+        visited = set()
+        for start in sorted(mapping):
+            if start in visited:
+                continue
+            cycle = []
+            current = start
+            while current not in visited:
+                visited.add(current)
+                cycle.append(current)
+                current = mapping.get(current)
+                if current is None:
+                    return ()
+            if current != start:
+                return ()
+            if len(cycle) > 1:
+                cycles.append(tuple(cycle))
+        return tuple(cycles)
+
+    def _format_bar_cycles(self, cycles):
+        entries = []
+        for cycle in cycles:
+            if len(cycle) == 2:
+                entries.append(f"{cycle[0]}<>{cycle[1]}")
+            else:
+                entries.append(">".join(cycle))
+        return f"[{';'.join(entries)}]" if entries else ""
+
+    def _format_cycle_shape(self, cycle_lengths):
+        counts = []
+        for length in sorted(set(cycle_lengths)):
+            count = cycle_lengths.count(length)
+            counts.append(f"{length}x{count}" if count > 1 else str(length))
+        return "+".join(counts)
 
 
 class MypermEffectAnalyzer:
@@ -602,6 +797,9 @@ def rename_myperms_by_effect(cube):
     source_aliases = getattr(cube, "myperms2_source_aliases", {})
     for legacy_name, source_name in source_aliases.items():
         name_aliases[legacy_name] = name_aliases.get(source_name, source_name)
+    legacy_names_by_source = defaultdict(list)
+    for legacy_name, source_name in source_aliases.items():
+        legacy_names_by_source[source_name].append(legacy_name)
 
     renamed_myperms = {}
     key_aliases = {}
@@ -628,6 +826,14 @@ def rename_myperms_by_effect(cube):
             current_key = make_myperm_key(current_name, transform_index)
             if current_key in renamed_myperms:
                 key_aliases.setdefault(legacy_key, current_key)
+
+    for original_key, reindexed_key in getattr(cube, "myperm_transform_key_aliases", {}).items():
+        current_key = current_key_map.get(reindexed_key, reindexed_key)
+        if current_key in renamed_myperms:
+            key_aliases[original_key] = current_key
+            for legacy_name in legacy_names_by_source.get(original_key[0], ()):
+                legacy_key = make_myperm_key(legacy_name, original_key[1])
+                key_aliases[legacy_key] = current_key
 
     cube.myperms = renamed_myperms
     cube.myperm_name_aliases = name_aliases

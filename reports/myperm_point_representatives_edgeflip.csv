@@ -1,0 +1,8 @@
+puzzle,current_name,legacy_names,current_key,current_point,best_transform_index,best_point,point_delta,best_existing_key,best_effect_name,proposed_source_name,moved_count,orientation_count,move_count,moves
+rubiks-7,EAll2[FL>LF;RF>FR],EdgeFlip2-A,EAll2[FL>LF;RF>FR]#00,3780,0,3780,0,EAll2[FL>LF;RF>FR]#00,EAll2[FL>LF;RF>FR],EAll2[FL>LF;RF>FR],2,2,15,R F U F' U2 F2 U D R U' R' D' F2 U R'
+rubiks-7,EAll2[LB>BL;RF>FR],EdgeFlip2-D,EAll2[LB>BL;RF>FR]#00,3370,0,3370,0,EAll2[LB>BL;RF>FR]#00,EAll2[LB>BL;RF>FR],EAll2[LB>BL;RF>FR],2,2,15,L F' U' F U2 F2 U' D' L' U L D F2 U' L'
+rubiks-7,EAll2[RF>FR;UB>BU],EdgeFlip2-C,EAll2[RF>FR;UB>BU]#00,2710,0,2710,0,EAll2[RF>FR;UB>BU]#00,EAll2[RF>FR;UB>BU],EAll2[RF>FR;UB>BU],2,2,13,U R U' R2 U2 R L F R' F' L' U2 R
+rubiks-7,EAll2[RF>FR;UF>FU],EdgeFlip2-B,EAll2[RF>FR;UF>FU]#00,2710,0,2710,0,EAll2[RF>FR;UF>FU]#00,EAll2[RF>FR;UF>FU],EAll2[RF>FR;UF>FU],2,2,13,D R U' R' D' F2 U F U F' U2 F2 U
+rubiks-7,EAll4[BR>RB;FL>LF;LB>BL;RF>FR],EdgeFlip4-F,EAll4[BR>RB;FL>LF;LB>BL;RF>FR]#00,6740,0,6740,0,EAll4[BR>RB;FL>LF;LB>BL;RF>FR]#00,EAll4[BR>RB;FL>LF;LB>BL;RF>FR],EAll4[BR>RB;FL>LF;LB>BL;RF>FR],4,4,19,F L2 R F2 R F' U F L D F2 D' F L' F' U' L2 R2 F'
+rubiks-7,EAll4[DB>BD;FL>LF;RF>FR;UB>BU],EdgeFlip4-G,EAll4[DB>BD;FL>LF;RF>FR;UB>BU]#00,5010,0,5010,0,EAll4[DB>BD;FL>LF;RF>FR;UB>BU]#00,EAll4[DB>BD;FL>LF;RF>FR;UB>BU],EAll4[DB>BD;FL>LF;RF>FR;UB>BU],4,4,17,R2 L' B2 L' B D' B' R' U' B2 U B' R B D R2 L2
+rubiks-7,EAll4[DF>FD;FL>LF;RF>FR;UF>FU],EdgeFlip4-E,EAll4[DF>FD;FL>LF;RF>FR;UF>FU]#00,5010,0,5010,0,EAll4[DF>FD;FL>LF;RF>FR;UF>FU]#00,EAll4[DF>FD;FL>LF;RF>FR;UF>FU],EAll4[DF>FD;FL>LF;RF>FR;UF>FU],4,4,14,R' F2 R F' U F L D F2 D' F L' F' U'

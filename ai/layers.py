@@ -92,6 +92,38 @@ class Sigmoid:
         return dO
 
 
+def stable_sigmoid(x):
+    y = np.empty_like(x,dtype = 'f')
+    positive = x >= 0
+    y[positive] = 1.0 / (1.0 + np.exp(-x[positive]))
+    exp_x = np.exp(x[~positive])
+    y[~positive] = exp_x / (1.0 + exp_x)
+    return y
+
+
+class SiLU:
+    """Layer-wise scalar-beta SiLU/Swish: y = x * sigmoid(beta * x)."""
+
+    def __init__(self, beta = 1.0):
+        self.beta = np.asarray([beta],dtype = 'f')
+        self.dbeta = np.zeros_like(self.beta,dtype = 'f')
+        self.x = np.empty((0,0),dtype = 'f')
+        self.s = np.empty((0,0),dtype = 'f')
+        self.out = np.empty((0,0),dtype = 'f')
+
+    def forward(self,x):
+        self.x = x
+        self.s = stable_sigmoid(self.beta[0] * x)
+        self.out = x * self.s
+        return self.out
+
+    def backward(self,dO):
+        beta = self.beta[0]
+        common = self.s * (1.0 - self.s)
+        self.dbeta = np.asarray([np.sum(dO * self.x * self.x * common)],dtype = 'f')
+        return dO * (self.s + beta * self.x * common)
+
+
 class ResidualBlock:
     """Affine -> optional BN -> activation block with shape-safe residual skip."""
 

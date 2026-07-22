@@ -250,3 +250,45 @@ class MyLoss2:
             end = Indices[i + 1]
             steps.extend(range(end - start - 1,-1,-1))
         return steps
+
+
+class MyLoss2Pairwise:
+    """Adjacent pairwise margin loss for Search2 value training."""
+
+    def __init__(self, margin = 0.2):
+        self.margin = float(margin)
+        self.x = np.zeros(0,dtype = 'f')
+        self.diffs = np.zeros(0,dtype = 'f')
+        self.y = np.zeros(0,dtype = 'f')
+        self.Indices = None
+
+    def forward(self,x,Indices):
+        self.x = x
+        self.Indices = Indices
+        self.diffs = np.zeros((1,0),dtype = x.dtype)
+        for i in range(len(Indices) - 1):
+            start = Indices[i]
+            end = Indices[i + 1]
+            if end - start <= 1:
+                continue
+            self.diffs = np.c_[self.diffs,self.x[:,start + 1:end] - self.x[:,start:end - 1]]
+        self.y = sigmoid(self.diffs - self.margin)
+        return np.sum(np.logaddexp(0.0,self.margin - self.diffs))
+
+    def backward(self):
+        dO = np.zeros_like(self.x)
+        if self.Indices is None:
+            return dO
+        D = self.y - 1.0
+        diff_index = 0
+        for i in range(len(self.Indices) - 1):
+            start = self.Indices[i]
+            end = self.Indices[i + 1]
+            count = end - start - 1
+            if count <= 0:
+                continue
+            d = D[:,diff_index:diff_index + count]
+            dO[:,start:end - 1] -= d
+            dO[:,start + 1:end] += d
+            diff_index += count
+        return dO

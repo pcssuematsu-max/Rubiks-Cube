@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
-import pickle
+from pathlib import Path
+
 import numpy as np
 
 class ParamManager:
@@ -11,6 +11,7 @@ class ParamManager:
 
     def __init__(self, frame):
         self.frame = frame
+        self.project_root = Path(__file__).resolve().parents[1]
 
     def selected_indices(self, text):
         """カンマ区切りの入力文字列から、有効なAI indexだけを重複なしで取り出す。"""
@@ -135,8 +136,8 @@ class ParamManager:
         """AI indexに対応する保存ディレクトリ名を作る。"""
         namespace = getattr(self.frame.cube, 'parameter_namespace', None)
         if namespace:
-            return os.path.join('.', 'GroupAIdatas', namespace, 'AI' + str(index))
-        return './AIdatas' + str(index)
+            return self.project_root / 'GroupAIdatas' / namespace / ('AI' + str(index))
+        return self.project_root / ('AIdatas' + str(index))
 
     def _target_keys(self, ai, keylis):
         """除外リストに含まれないパラメータkeyだけを列挙する。"""
@@ -155,10 +156,11 @@ class ParamManager:
 
     def _load_param_set(self, ai, data_dir, key):
         """1つのkeyについて、重み・v・hを読み込む。"""
-        param_path = os.path.join(data_dir,key + '.npy')
-        v_path = os.path.join(data_dir,key + '_v.npy')
-        h_path = os.path.join(data_dir,key + '_h.npy')
-        if not os.path.exists(param_path):
+        data_dir = Path(data_dir)
+        param_path = data_dir / f'{key}.npy'
+        v_path = data_dir / f'{key}_v.npy'
+        h_path = data_dir / f'{key}_h.npy'
+        if not param_path.exists():
             print(f"Skip missing param: {param_path}")
             return
         loaded_param = np.load(param_path)
@@ -166,21 +168,22 @@ class ParamManager:
             print(f"Skip shape mismatch param: {param_path} {loaded_param.shape} != {ai.params[key].shape}")
             return
         ai.params[key][:] = loaded_param
-        if os.path.exists(v_path):
+        if v_path.exists():
             loaded_v = np.load(v_path)
             if loaded_v.shape == ai.v[key].shape:
                 ai.v[key][:] = loaded_v
-        if os.path.exists(h_path):
+        if h_path.exists():
             loaded_h = np.load(h_path)
             if loaded_h.shape == ai.h[key].shape:
                 ai.h[key][:] = loaded_h
 
     def _save_param_set(self, ai, data_dir, key):
         """1つのkeyについて、重み・v・hを保存する。"""
-        os.makedirs(data_dir, exist_ok = True)
-        np.save(os.path.join(data_dir,key + '.npy'),ai.params[key])
-        np.save(os.path.join(data_dir,key + '_v.npy'),ai.v[key])
-        np.save(os.path.join(data_dir,key + '_h.npy'),ai.h[key])
+        data_dir = Path(data_dir)
+        data_dir.mkdir(parents = True, exist_ok = True)
+        np.save(data_dir / f'{key}.npy', ai.params[key])
+        np.save(data_dir / f'{key}_v.npy', ai.v[key])
+        np.save(data_dir / f'{key}_h.npy', ai.h[key])
 
     def _after_load(self, ai):
         """読込後に完成状態の評価値と推論キャッシュを更新する。"""

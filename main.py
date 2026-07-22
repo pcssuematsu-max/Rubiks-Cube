@@ -258,21 +258,18 @@ def _default_initial_scramble_groups(size,puzzle_type):
     elif size == 4:
         return (
             [
-                (" x2"," y "),
-                ("2U "," R "," U "," R'","2U'","2R "," U "," F "," U'"," F'","2R'","2D2"," F "," U2"," F'","2D2"," F ","2R2","2U ","2R2","2U'"," F'"),
-                (" R ","2U "," F ","2U'"," R'"," F'"),
-                (' B2', " L'", ' B2', ' D2', " F'", " R'", ' F ', ' D2', " B'", ' L ', ' B ') + ("2F2"," R2"," U2","2F2"," U2"," R2","2F2") + ("2U ","2R "," F ","2U'","2R'"," F'"),
-                (' B2', " L'", ' B2', ' D2', " F'", " R'", ' F ', ' D2', " B'", ' L ', ' B ') + ("2F2"," R2"," U2","2F2"," U2"," R2","2F2") + ("2F "," R'","2F'","2U'"," R ","2U "),
-            ],
-            [
-            ],
-            [
-            ],
-            [
+                ("2R "," U ","2F'","2R'"," U ","2F "),
+                (" U ","2R ","2F "," D "," R ","2B'","2L'"," F'","2U "," F'"," R ","2D'","2F2"),
+                (" U "," R "," F'"," D2"," R'"," F "," B2"," R "," L'"," U2"," R "," F2"," R2"),
 
             ],
             [
-
+            ],
+            [
+            ],
+            [
+            ],
+            [
             ],
             [],
             [],
@@ -282,23 +279,37 @@ def _default_initial_scramble_groups(size,puzzle_type):
 
     elif size == 7:
         return (
-            [(" U "," R "),
-             (" U'"," F'"),
-             (" R'"," F "," R "," F'"),
-             (" F "," R'"," F'"," R "),
+            [
              (" F "," E "," F "," E "," F'"," E "," F "," E "," F'"," E "," F'"),
-             ("2U ","3R "),
-             ("2U'","3F'"),
-             ("2R ","2L ","2F ","2B "),
-             ("2F'","2B'","2R'","2L'"),
-             (" y "," x2"),
-             (" y "," z2"),
-             ("2L2"," U ","3F2","3R2"," U'"),
-             ('2U2', " B'", '2R2', ' B ', ' R2', " B'", '2R2', " B'", "2U'", ' B2', '2U2', ' R2', "2D'", ' F2', '2U2', ' F2', ' R2', '2D ', ' R2'),
-             ('3U2', " B'", '3R2', ' B ', ' R2', " B'", '3R2', " B'", "3U'", ' B2', '3U2', ' R2', "3D'", ' F2', '3U2', ' F2', ' R2', '3D ', ' R2'),
+             (" y "," x2"," R "," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"),
+             (" y "," z2"," R "," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"),
+             (" x "," z'"," R "," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"),
+             (" x'"," z "," R "," U2"," R'"," B "," D2"," B'"," R "," U2"," R'"," B "," D2"," B'"),
+             (" R'", ' D2', '2B ', ' D ', ' F2', " D'", "2B'", ' D ', ' F2', ' D ', ' R '),
+             (" R'", " D'", ' F2', " D'", '2B ', ' D ', ' F2', " D'", "2B'", ' D2', ' R '),
              (" M "," U "," M2"," U2"," M2"," U "," M'"),
-
-
+             (' M2', ' U ', ' M ', ' U2', " M'", ' U ', " M'", " U'", ' F2', ' U ', ' M ', " U'", ' F2', ' U ', ' M2'),
+             ('2U2', " B'", '2R2', ' B ', ' R2', " B'", '2R2', " B'", "2U'", ' B2', '2U2', ' R2', "2D'", ' F2', '2U2', ' F2', ' R2', '2D ', ' R2'),
+             (" U ","2R "," U'","2F'"," U ","2R'"," U'","2F "),
+             (" U ","2R "," U'","3F'"," U ","2R'"," U'","3F "),
+             (" U ","2R "," U'"," S'"," U ","2R'"," U'"," S "),
+             ('2U2', ' F2', "2U'", ' R2', "2U'", ' R2', ' F2', "2U'", ' F2', '2U ', ' F2', "2U'", ' F2', '2U2', ' F2'),
+             ('2D2', ' L2', ' F2', "2U'", ' F2', '2D ', ' R2', ' B2', '2U ', ' B2', "2D'", ' R2', "2U'", ' L2', '2D2'),
+             ('2D2', ' R2', "2D'", ' R2', ' L2', '2U ', ' L2', ' R2', "2D'", ' R2', '2D2'),
+             ("2U'", ' R2', "2U'", ' R2', ' F2', "2U'", ' F2', "2U'", ' B2', '2D2', ' B2', '2U ', ' R2', '2U2', ' R2'),
+             ('2U2', ' L2', '2U ', ' L2', "2U'", ' L2', '2U ', ' L2', ' F2', '2U ', ' F2', '2U ', ' L2', '2U2', ' L2'),
+             ('2D2', ' R2', "2D'", ' R2', '2D ', ' R2', "2D'", ' R2', "2D'", ' R2', '2D ', ' B2', "2D'", ' B2', '2D ', ' R2'),
+             ('2D2', ' L2', '2D ', ' F2', "2D'", ' F2', "2U'", ' R2', "2D'", ' R2', '2U ', ' L2', '2D2'),
+             ('2D2', ' B ', '2R ', " B'", ' R2', ' B ', "2R'", ' B ', '2D ', ' B2', '2D2', ' R2', '2U ', ' F2', '2D2', ' F2', ' R2', "2U'", ' R2'),
+             ("2U "," F2"," B2","2D2"," B2"," F2","2U "),
+             (" F2","2U "," F2"," B2","2D2"," B2"," F2","2U "," F2"),
+             (" B2"," F2","2U "," F2"," B2","2D2"," B2"," F2","2U "," F2"," B2"),
+             ("2U'", ' F2', ' L2', ' B2', '2D ', '2U ', ' B2', ' L2', ' F2', '2D ', "2U2"),
+             (" F2","2U'", ' F2', ' L2', ' B2', '2D ', '2U ', ' B2', ' L2', ' F2', '2D ', "2U2"," F2"),
+             (" L2"," F2","2U'", ' F2', ' L2', ' B2', '2D ', '2U ', ' B2', ' L2', ' F2', '2D ', "2U2"," F2"," L2"),
+            ],
+            [
+             (" R "," U "," L'"," U'"," R'"," U "," L "," U'"),
             ],
             [
             ],
@@ -306,7 +317,6 @@ def _default_initial_scramble_groups(size,puzzle_type):
             ],
             [
             ],
-            [],
             [],
             [],
             [],
@@ -316,8 +326,8 @@ def _default_initial_scramble_groups(size,puzzle_type):
 def build_default_frame_config():
     """現在の既定実験設定を FrameConfig として返す。"""
     ai_search_modes = [
-        'search2'
-        if ai_index < 10
+        'search3'
+        if ai_index % 10 in [2,3,4,5,6,7]
         else 'search2'
         for ai_index in range(20)
     ]
@@ -325,8 +335,8 @@ def build_default_frame_config():
     ai_count = len(ai_search_modes)
     is_search2_ai = [mode.startswith('search2') for mode in ai_search_modes]
     lrs = [
-        1.0e-5 if original_transformer_attention[ai_index] else (2.0e-6 if is_search2_ai[ai_index] else 1.0e-6)
-        for ai_index in range(ai_count)
+        2.0e-6,2.0e-6,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-6,2.0e-6,
+        5.0e-6,5.0e-6,5.0e-5,5.0e-5,5.0e-5,5.0e-5,5.0e-5,5.0e-5,5.0e-6,5.0e-6,
     ]
     wdlrs = [
         1.0e-7 if original_transformer_attention[ai_index] else (1.0e-7 if is_search2_ai[ai_index] else 1.0e-5)
@@ -334,15 +344,44 @@ def build_default_frame_config():
     ]
     skip_search = [is_search2_ai[ai_index] for ai_index in range(ai_count)]
     weight_decay = [True] * ai_count
+    activations = ['SiLU'] * ai_count
     search3_progress = [False] * 10 + [False,False,False,True,False,True,False,True,False,False]
     residuals = [True] * ai_count
-    #search2_value_loss_types = ['myloss','myloss','myloss2','myloss2','myloss2','myloss2','myloss2','myloss2','myloss','myloss'] * 2
+    #search2_value_loss_types = ['myloss','myloss','myloss2_pairwise','myloss2_pairwise','myloss2_pairwise','myloss2_pairwise','myloss2_pairwise','myloss2_pairwise','myloss','myloss'] * 2
     search2_value_loss_types = ['myloss','myloss','myloss','myloss','myloss','myloss','myloss','myloss','myloss','myloss'] * 2
+    search2_value_loss_margins = [0.0] * ai_count
+    search2_rank_loss_mixes = [
+        5.0 if search2_value_loss_types[ai_index] in ('myloss2','myloss2_pairwise') else 0.0
+        for ai_index in range(ai_count)
+    ]
+    search2_rank_loss_apply_types = ['all'] * ai_count
+    search3_rank_loss_mixes = [0.0] * ai_count
+    w1_initializers = [
+        [
+#        {'selector': {'correct': True, 'solve_group':'Corner'}, 'basis': [0 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'MidEdge'}, 'basis': [1 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'Wing-Layer2'}, 'basis': [2 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'Wing-Layer3'}, 'basis': [3 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'XCenter-Layer2'}, 'basis': [4 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'XCenter-Layer3'}, 'basis': [5 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'PlusCenter-Layer2'}, 'basis': [6 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'PlusCenter-Layer3'}, 'basis': [7 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'ObliqueCenter-A'}, 'basis': [8 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'ObliqueCenter-B'}, 'basis': [9 + 11 * i for i in range(5)], 'scale': -0.05},
+#        {'selector': {'correct': True, 'solve_group':'CoreCenter'}, 'basis': [10 + 11 * i for i in range(5)], 'scale': -0.05},
+        ],
+    ] * (20)
+    # Example:
+    # w1_initializers[10] = [
+    #     {'selector': {'correct': True}, 'basis': 0, 'scale': 0.05},
+    #     {'selector': {'piece_type': 'Center', 'colors': ['Red']}, 'basis': 1, 'scale': 0.05},
+    #     {'selector': {'piece_type': 'Edge', 'position_contains': ['U:Red', 'R:Blue', '2F']}, 'basis': 2, 'scale': 0.05},
+    # ]
 
 
     adam = weight_decay.copy()
 
-    cube_size = 4
+    cube_size = 7
     puzzle_type = 'cube'
     if cube_size >= 6:
         transform_idx = [0,49,50,3,52,5,54,7,24,25] * 2
@@ -414,16 +453,21 @@ def build_default_frame_config():
         skip_search = skip_search,
         weight_decay = weight_decay,
         adam = adam,
+        activations = activations,
         lr_vs = [0.99] * ai_count,
         lr_hs = [0.99] * ai_count,
         out_cs = [1.0] * ai_count,
-        search3_cs = [0.05] * ai_count,
+        search3_cs = [1.0] * ai_count,
         search2_max_frontiers = [30000] * ai_count,
         search2_torch_batch_sizes = [
             64 if original_transformer_attention[ai_index] else 100
             for ai_index in range(ai_count)
         ],
         search2_value_loss_types = search2_value_loss_types,
+        search2_value_loss_margins = search2_value_loss_margins,
+        search2_rank_loss_mixes = search2_rank_loss_mixes,
+        search2_rank_loss_apply_types = search2_rank_loss_apply_types,
+        search3_rank_loss_mixes = search3_rank_loss_mixes,
         torch_training_devices = [
             'cpu' if original_transformer_attention[ai_index] else 'auto'
             for ai_index in range(ai_count)
@@ -439,7 +483,7 @@ def build_default_frame_config():
         ],
         residuals = residuals,
         update_scales = [
-            (5.0, 1.0, 20.0) if is_search2_ai[ai_index] else (5.0, 1.0, 5.0)
+            (5.0, 1.0, 20.0) if is_search2_ai[ai_index] else (5.0, 1.0, 20.0)
             for ai_index in range(ai_count)
         ],
         original_transformer_attention = original_transformer_attention,
@@ -462,8 +506,9 @@ def build_default_frame_config():
             1.0 if original_transformer_attention[ai_index] else 0.0
             for ai_index in range(ai_count)
         ],
+        w1_initializers = w1_initializers,
         max_search2_data = 80000,
-        max_search3_data_per_ai = 2000,
+        max_search3_data_per_ai = 80000,
         transform_idx = transform_idx,
         flip_inside_idx = flip_inside_idx,
         priority_list = priority_list,

@@ -863,6 +863,7 @@ class SolveSessionManager:
 
             combined_moves = ()
             if state.search_TF or self.frame.AIs[self.frame.AI_idx].search_mode == "search2":
+                self._store_connected_myloss_training_sample()
                 for moves in state.move_lis:
                     combined_moves += moves
                     if self._store_search2_training_sample(state.s, combined_moves):
@@ -894,7 +895,7 @@ class SolveSessionManager:
                             f"last_perm found: ai={self.frame.AI_idx} key={state.last_perfect_key} len={len(simplified_moves)}"
                         )
 
-            if state.search_TF and self.frame.AIs[self.frame.AI_idx].search_mode == 'search2':
+            if state.search_TF and self.frame.AIs[self.frame.AI_idx].search_mode == 'search2' and self.frame.AIs[self.frame.AI_idx].search2_value_loss_type == "myloss":
                 max_level = max(1,int(- state.val_lis2[1][0] / 5))
                 if max_level >= len(self.frame.cube.my_scrambles2):
                     for _ in range(max_level - len(self.frame.cube.my_scrambles2) + 1):
@@ -938,7 +939,55 @@ class SolveSessionManager:
 
         state.phase = -1
 
-    def _store_search2_training_sample(self, scramble, moves):
+    def _store_connected_myloss_training_sample(self):
+        """Pairwise Search2成功時に、MyLoss向けの連結手順データを追加する。"""
+        state = self.frame.solve_state
+        if not state.search_TF:
+            return False
+        source_ai = self._current_source_ai()
+        if getattr(source_ai,'search2_value_loss_type',None) != 'myloss2_pairwise':
+            return False
+        if len(state.move_lis) <= 1:
+            return False
+        target_ai_indices = self._myloss_search2_ai_indices()
+        if not target_ai_indices:
+            return False
+        connected_moves = tuple([])
+        for moves in state.move_lis:
+            connected_moves += tuple(moves)
+        return self._store_search2_training_sample(
+            state.s,
+            connected_moves,
+            source_ai = source_ai,
+            source_search_mode = getattr(source_ai,'search_mode','search2'),
+            source_value_loss_type = 'myloss_connected',
+            target_ai_indices = target_ai_indices,
+        )
+
+    def _myloss_search2_ai_indices(self):
+        indices = []
+        for ai_index, ai in enumerate(self.frame.AIs):
+            if (
+                getattr(ai,'search_mode',None) == 'search2'
+                and getattr(ai,'search2_value_loss_type',None) == 'myloss'
+            ):
+                indices.append(ai_index)
+        return indices
+
+    def _current_source_ai(self):
+        if self.frame.AI_idx in range(self.frame.AInum):
+            return self.frame.AIs[self.frame.AI_idx]
+        return self.frame.myval_AI
+
+    def _store_search2_training_sample(
+        self,
+        scramble,
+        moves,
+        source_ai = None,
+        source_search_mode = None,
+        source_value_loss_type = None,
+        target_ai_indices = None,
+    ):
         """保存前に手順列を簡約してから Search2 学習データへ追加する。"""
         simplified_moves = self.frame.cube.simplify(moves)
         if len(simplified_moves) == 0:
@@ -949,12 +998,12 @@ class SolveSessionManager:
         datas = self.frame.cube.make_transformations(scramble,simplified_moves)
 
         state = self.frame.solve_state
-        if self.frame.AI_idx in range(self.frame.AInum):
-            source_ai = self.frame.AIs[self.frame.AI_idx]
-        else:
-            source_ai = self.frame.myval_AI
-        source_search_mode = getattr(source_ai,'search_mode','search2')
-        source_value_loss_type = getattr(source_ai,'search2_value_loss_type',None)
+        if source_ai is None:
+            source_ai = self._current_source_ai()
+        if source_search_mode is None:
+            source_search_mode = getattr(source_ai,'search_mode','search2')
+        if source_value_loss_type is None:
+            source_value_loss_type = getattr(source_ai,'search2_value_loss_type',None)
         if not state.search_TF:
             source_search_mode = 'myval'
             source_value_loss_type = 'myval'
@@ -972,9 +1021,24 @@ class SolveSessionManager:
         self.frame.AIs[self.frame.AI_idx].datas.append(data_item)
 
         data_index = len(self.frame.AIs[self.frame.AI_idx].datas) - 1
-        for ai_index in range(self.frame.AInum):
+        if target_ai_indices is None:
+            target_ai_indices = self._default_search2_target_ai_indices(source_value_loss_type)
+        for ai_index in target_ai_indices:
             self.frame.AIs[ai_index].indices.append(data_index)
         return True
+
+    def _default_search2_target_ai_indices(self, source_value_loss_type):
+        """通常Search2データを学習対象にするAI indexを返す。"""
+        if source_value_loss_type == 'myloss2_pairwise':
+            return [
+                ai_index
+                for ai_index, ai in enumerate(self.frame.AIs)
+                if not (
+                    getattr(ai,'search_mode',None) == 'search2'
+                    and getattr(ai,'search2_value_loss_type',None) == 'myloss'
+                )
+            ]
+        return range(self.frame.AInum)
 
 
 

@@ -74,9 +74,9 @@ class SearchDataManager:
         )
 
     def _bootstrap_value_targets(self, segment_length):
-        value_targets = np.zeros(segment_length, dtype = 'f')
+        value_targets = np.zeros(segment_length + 1, dtype = 'f')
         gamma = self.frame.value_target_gamma
-        for move_index in range(segment_length):
+        for move_index in range(segment_length + 1):
             value_targets[move_index] = gamma ** max(segment_length - move_index, 0)
         return value_targets
 
@@ -161,9 +161,9 @@ class SearchDataManager:
     def build_segment_value_targets(self, history_index, segment_length):
         """残り手数とgammaから、その探索区間のvalue target列を作る。"""
         remaining_length = self.search3_remaining_length(history_index)
-        value_targets = np.zeros(segment_length,dtype = 'f')
+        value_targets = np.zeros(segment_length + 1,dtype = 'f')
         gamma = self.frame.value_target_gamma
-        for move_index in range(segment_length):
+        for move_index in range(segment_length + 1):
             value_targets[move_index] = gamma ** max(remaining_length - move_index,0)
         return value_targets
 

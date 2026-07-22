@@ -20,8 +20,8 @@ MODULUS = 43
 # Matrices are reduced modulo MODULUS.  Missing inverse generators are added
 # automatically, so these two entries become X = {A, A^-1, B, B^-1}.
 GENERATORS = {
-    "A": [[1, 1], [0, 1]],
-    "B": [[1, 0], [1, 1]],
+    "A": [[42, 1], [42, 0]],
+    "B": [[0, 1], [42, 0]],
 }
 AUTO_ADD_INVERSES = True
 
