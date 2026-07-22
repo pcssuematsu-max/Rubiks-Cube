@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.myperm_effects import MypermEffectAnalyzer
-from core.myperm_keys import format_myperm_key, make_myperm_key
+from core.myperm_keys import format_myperm_key, make_myperm_key, normalize_myperm_registry
 from core.myperm_points import MypermPointCalculator, load_myperm_points
 from cube.rubiks_cube import Rubiks_3
 
@@ -67,9 +67,6 @@ def collect_rows(cube, point_table, name_prefixes = (), quiet = False):
 
 def _legacy_names_by_current(cube):
     legacy_names_by_current = defaultdict(list)
-    for legacy_name, current_name in getattr(cube, "myperms2_source_aliases", {}).items():
-        if legacy_name != current_name:
-            legacy_names_by_current[current_name].append(legacy_name)
     for legacy_name, current_name in getattr(cube, "myperm_name_aliases", {}).items():
         if legacy_name != current_name:
             legacy_names_by_current[current_name].append(legacy_name)
@@ -112,6 +109,9 @@ def _display_moves(cube, moves):
 def _add_proposed_source_names(rows):
     grouped = defaultdict(list)
     for row in rows:
+        if _keeps_source_myperm_name(row["current_name"]):
+            row["proposed_source_name"] = row["current_name"]
+            continue
         grouped[row["best_effect_name"]].append(row)
 
     for effect_name, matching_rows in grouped.items():
@@ -123,6 +123,10 @@ def _add_proposed_source_names(rows):
             start = 1,
         ):
             row["proposed_source_name"] = f"{effect_name}~v{variant_index:02d}"
+
+
+def _keeps_source_myperm_name(name):
+    return str(name).startswith(("OuterCenterBar", "MidCenterBar"))
 
 
 def write_csv(rows, output_path):
@@ -152,12 +156,17 @@ def write_csv(rows, output_path):
 
 def print_summary(rows, output_path):
     puzzle_counts = Counter(row["puzzle"] for row in rows)
-    changed_rows = sum(row["point_delta"] != 0 or row["current_name"] != row["proposed_source_name"] for row in rows)
     point_gain_rows = sum(row["point_delta"] > 0 for row in rows)
+    source_name_change_rows = sum(row["current_name"] != row["proposed_source_name"] for row in rows)
+    transform_only_point_gain_rows = sum(
+        row["point_delta"] > 0 and row["current_name"] == row["proposed_source_name"]
+        for row in rows
+    )
     print(f"wrote {len(rows)} point representative rows to {output_path}")
     print("puzzles:", ", ".join(f"{name}={count}" for name, count in sorted(puzzle_counts.items())))
     print(f"rows with point gain: {point_gain_rows}")
-    print(f"rows with proposed source change: {changed_rows}")
+    print(f"rows with proposed source name change: {source_name_change_rows}")
+    print(f"rows with transform-only point gain: {transform_only_point_gain_rows}")
 
 
 def build_parser():
@@ -186,6 +195,7 @@ def build_report_cube(size, name_prefixes = (), full_init = False):
 
     cube = Rubiks_3(size = size, RegisterMyperms = False)
     cube._register_myperms2()
+    cube.myperms2 = normalize_myperm_registry(cube.myperms2)
     legacy_names_by_current = _legacy_names_by_current(cube)
     selected_names = [
         name

@@ -88,7 +88,7 @@ def format_myperm_key(key):
 
 
 def resolve_myperm_key(cube, key, default_transform_index = 0):
-    """Resolve a current key, legacy alias, base name, or formatted key."""
+    """Resolve a current key, base name, formatted key, or explicit key alias."""
     try:
         if key in cube.myperms:
             return key

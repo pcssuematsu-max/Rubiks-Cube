@@ -768,7 +768,7 @@ class MypermEffectAnalyzer:
 
 
 def rename_myperms_by_effect(cube):
-    """Replace registered myperm base names while retaining legacy aliases."""
+    """Replace registered myperm base names with effect-based names."""
     old_names = tuple(getattr(cube, "myperms2", ()))
     if not old_names:
         cube.myperm_name_aliases = {}
@@ -782,7 +782,10 @@ def rename_myperms_by_effect(cube):
         old_key = make_myperm_key(old_name, 0)
         if old_key not in cube.myperms:
             continue
-        effect_name = analyzer.proposed_name(old_key)
+        if _keeps_source_myperm_name(old_name):
+            effect_name = old_name
+        else:
+            effect_name = analyzer.proposed_name(old_key)
         effect_names[old_name] = effect_name
         grouped_names[effect_name].append(old_name)
 
@@ -792,14 +795,8 @@ def rename_myperms_by_effect(cube):
             new_name = effect_name
             if len(matching_names) > 1:
                 new_name += f"~v{variant_index:02d}"
-            name_aliases[old_name] = new_name
-
-    source_aliases = getattr(cube, "myperms2_source_aliases", {})
-    for legacy_name, source_name in source_aliases.items():
-        name_aliases[legacy_name] = name_aliases.get(source_name, source_name)
-    legacy_names_by_source = defaultdict(list)
-    for legacy_name, source_name in source_aliases.items():
-        legacy_names_by_source[source_name].append(legacy_name)
+            if old_name != new_name:
+                name_aliases[old_name] = new_name
 
     renamed_myperms = {}
     key_aliases = {}
@@ -831,9 +828,6 @@ def rename_myperms_by_effect(cube):
         current_key = current_key_map.get(reindexed_key, reindexed_key)
         if current_key in renamed_myperms:
             key_aliases[original_key] = current_key
-            for legacy_name in legacy_names_by_source.get(original_key[0], ()):
-                legacy_key = make_myperm_key(legacy_name, original_key[1])
-                key_aliases[legacy_key] = current_key
 
     cube.myperms = renamed_myperms
     cube.myperm_name_aliases = name_aliases
@@ -854,3 +848,8 @@ def rename_myperms_by_effect(cube):
     if hasattr(cube, "single_and_rotate"):
         cube.single_and_rotate = [current_key_map.get(key, key) for key in cube.single_and_rotate]
     return name_aliases
+
+
+def _keeps_source_myperm_name(name):
+    """Keep intentionally compact source names that are clearer than effects."""
+    return str(name).startswith(("OuterCenterBar", "MidCenterBar"))

@@ -40,10 +40,10 @@ class MypermPointTableTest(unittest.TestCase):
         cube = Rubiks_3(size = 7)
         table = load_myperm_points()
         calculator = MypermPointCalculator(cube, table)
-        key = resolve_myperm_key(cube, "WingParallel6-A")
+        key = resolve_myperm_key(cube, "W2-6p[3x2][BR@D>FL@D>RF@U;BR@U>FL@U>RF@D]")
 
-        self.assertEqual(calculator.point_for_key(key), 2360)
-        self.assertIn("BR@D>LB@U>FL@D", key[0])
+        self.assertEqual(calculator.point_for_key(key), 2560)
+        self.assertIn("BR@D>FL@D>RF@U", key[0])
 
     def test_edge_bundle_scores_mid_edge_and_each_wing_layer(self):
         cube = Rubiks_3(size = 7)
