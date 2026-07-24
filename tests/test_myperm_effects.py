@@ -50,6 +50,21 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
         self.assertEqual(effect.concise_name(), "EAll12[XY>YX]")
         self.assertTrue(any(component.part_code.startswith("Ctr") for component in effect.components))
 
+    def test_unavailable_inner_layer_moves_are_skipped_by_size(self):
+        cube5 = Rubiks_3(size = 5, RegisterMyperms = False)
+        self.assertEqual(
+            cube5._moves_available_for_size(('2U2', '3U2', ' R2', '3R2')),
+            ('2U2', ' R2'),
+        )
+
+        cube3 = Rubiks_3(size = 3, RegisterMyperms = False)
+        self.assertEqual(
+            cube3._moves_available_for_size(
+                ("2F2", "3F2", " R2", " U2", "2F2", "3F2", " U2", " R2", "2F2", "3F2")
+            ),
+            (),
+        )
+
     def test_outer_center_bar_uses_bar_notation(self):
         expected_effect_names = (
             ("OuterCenterBar-A", "CtrBar3[F@2D>F@2U>R@2F]"),
@@ -513,6 +528,51 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
 
         self.assertEqual(solve_state.last_perfect_key, "LP:C2[UFL>FLU;URF>FUR]")
         self.assertEqual(solve_state.last_perfect_changed_number, expected_changed_number)
+        self.cube.reset()
+
+    def test_registered_last_perms_key_uses_base_transform_moves(self):
+        base_key = make_myperm_key("C2[UFL>FLU;URF>FUR]", 0)
+        source_key = make_myperm_key("C2[UFL>FLU;URF>FUR]", 1)
+        moves = self.cube.myperms[source_key]
+        myperms_col = {}
+        for key, registered_moves in self.cube.myperms.items():
+            self.cube.reset()
+            for move in self.cube.invert_moves(registered_moves):
+                self.cube.make_move(move)
+            myperms_col.setdefault("".join(self.cube.state), key)
+
+        self.cube.reset()
+        for move in self.cube.invert_moves(moves):
+            self.cube.make_move(move)
+        solve_state = SolveSessionState()
+        frame = SimpleNamespace(
+            cube = self.cube,
+            solve_state = solve_state,
+            myperms_col = myperms_col,
+        )
+
+        returned_moves = SolveSessionManager(frame)._store_perfect_key(moves)
+
+        self.assertEqual(solve_state.last_perfect_key, "C2[UFL>FLU;URF>FUR]")
+        self.assertEqual(returned_moves, self.cube.myperms[base_key])
+        self.assertEqual(solve_state.last_simplified_lis, self.cube.myperms[base_key])
+        self.cube.reset()
+
+    def test_unregistered_last_perms_key_uses_point_representative_transform(self):
+        source_key = make_myperm_key("C2[UFL>FLU;URF>FUR]", 1)
+        moves = self.cube.myperms[resolve_myperm_key(self.cube, source_key)]
+        solve_state = SolveSessionState()
+        frame = SimpleNamespace(
+            cube = self.cube,
+            solve_state = solve_state,
+            myperms_col = {},
+        )
+
+        returned_moves = SolveSessionManager(frame)._store_perfect_key(moves)
+
+        self.assertEqual(solve_state.last_perfect_key, "LP:C2[UFL>FLU;URF>FUR]")
+        self.assertEqual(returned_moves, solve_state.last_simplified_lis)
+        self.assertNotEqual(tuple(moves), solve_state.last_simplified_lis)
         self.cube.reset()
 
     def test_supported_puzzles_can_analyze_a_registered_myperm(self):

@@ -232,6 +232,45 @@ class MypermPointCalculator:
         return tuple(rows)
 
 
+@dataclass(frozen = True)
+class MypermPointTransform:
+    """Highest-point transform choice for one move sequence."""
+
+    moves: tuple
+    transform_index: int
+    point: float
+
+
+def point_representative_transform(cube, moves, point_table = None, include_internal_centers = False):
+    """Return the transform of moves with the highest myperms_point score."""
+    if point_table is None:
+        point_table = load_myperm_points(Path(__file__).resolve().parent.parent / "Points.txt")
+
+    calculator = MypermPointCalculator(cube, point_table)
+    transform_count = len(getattr(cube, "transformation_keys", ()))
+    if transform_count == 0 or not hasattr(cube, "transform"):
+        return MypermPointTransform(
+            tuple(moves),
+            0,
+            calculator.point_for_moves(moves, include_internal_centers = include_internal_centers),
+        )
+
+    best = None
+    for transform_index in range(transform_count):
+        transformed_moves = tuple(cube.transform(moves, transform_index))
+        point = calculator.point_for_moves(
+            transformed_moves,
+            include_internal_centers = include_internal_centers,
+        )
+        row = MypermPointTransform(transformed_moves, transform_index, point)
+        if best is None or row.point > best.point or (
+            row.point == best.point and row.transform_index < best.transform_index
+        ):
+            best = row
+
+    return best
+
+
 def reindex_myperms_by_points(cube, point_table, names = None):
     """Reassign each registered myperm's transform #00 to its highest-point transform."""
     calculator = MypermPointCalculator(cube, point_table)

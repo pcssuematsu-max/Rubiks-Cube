@@ -229,6 +229,31 @@ class Rubiks_3:
         self.myperms2[name] = moves
         return name
 
+    def _moves_available_for_size(self, moves):
+        """Drop inner-layer moves that do not exist for the current cube size."""
+        return self.simplify(
+            tuple(
+                move
+                for move in moves
+                if self._move_available_for_size(move)
+            )
+        )
+
+    def _move_available_for_size(self, move):
+        token = str(move).strip()
+        layer_digits = []
+        for character in token:
+            if not character.isdigit():
+                break
+            layer_digits.append(character)
+        if not layer_digits:
+            return True
+        layer = int("".join(layer_digits))
+        face_index = len(layer_digits)
+        if face_index < len(token) and token[face_index] in "UDFBLR":
+            return layer <= self.size // 2
+        return True
+
     def _add_single_moves_to_myperms(self):
         for m in self.move_keys:
             self.myperms[make_myperm_key(single_move_myperm_name(m), 0)] = (m,)
@@ -326,12 +351,9 @@ class Rubiks_3:
         # - ParitySwap-* は corner 2つ + midedge 2つの同時 swap。
         # - ParityCycle-* は corner 4つ + edge 2つの置換。
         # - A/B/F/J/K は corner 配置 family、末尾番号は family 内 variant。
-        if self.size <= 3:
-            PLLParity = ()
-        elif self.size <= 5:
-            PLLParity = ("2F2"," R2"," U2","2F2"," U2"," R2","2F2")
-        elif self.size <= 7:
-            PLLParity = ("2F2","3F2"," R2"," U2","2F2","3F2"," U2"," R2","2F2","3F2")
+        PLLParity = self._moves_available_for_size(
+            ("2F2", "3F2", " R2", " U2", "2F2", "3F2", " U2", " R2", "2F2", "3F2")
+        )
 
 
         parity_swap_moves = {}
@@ -372,15 +394,12 @@ class Rubiks_3:
         parity_swap_moves['ParitySwap-K0-'] = (" R'", ' U2', ' L ', ' F2', " L'", ' F2', ' R2', ' U2', ' R ', ' U2', " R'", ' U2', ' F2', ' R2', ' F2') + PLLParity
         parity_swap_moves['ParitySwap-K1-'] = (' R2', ' F2', ' U2', ' R ', ' U2', " R'", ' U2', ' R2', ' F2', ' L ', ' F2', " L'", ' U2', ' R ', ' F2') + PLLParity
 
-        if self.size <= 3:
-            ParityCycleU = ()
-            ParityCycleD = ()
-        elif self.size <= 5:
-            ParityCycleU = ('2U2', ' R2', ' F2', '2U2', ' F2', ' R2', '2U2')
-            ParityCycleD = ('2D2', ' L2', ' F2', '2D2', ' F2', ' L2', '2D2')
-        else:
-            ParityCycleU = ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2')
-            ParityCycleD = ('2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2')
+        ParityCycleU = self._moves_available_for_size(
+            ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2')
+        )
+        ParityCycleD = self._moves_available_for_size(
+            ('2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2')
+        )
 
         self._add_myperm2('C4[DFR>FUR>LFD>LUF]+ME2[FL>FR]', (" U'", " R'", " F'", ' R ', ' F ', " R'", ' F ', ' R ', ' F ', " R'", " F'", ' R ', ' U ') + ParityCycleU)
         self._add_myperm2('C4[DFR>LUF>LFD>FUR]+ME2[FL>FR]', (" U'", " R'", ' F ', ' R ', " F'", " R'", " F'", ' R ', " F'", " R'", ' F ', ' R ', ' U ') + ParityCycleU)

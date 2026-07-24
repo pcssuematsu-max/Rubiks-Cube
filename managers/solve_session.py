@@ -10,6 +10,7 @@ import tkinter as Tk
 
 from core.myperm_effects import MypermEffectAnalyzer
 from core.myperm_keys import format_myperm_key, myperm_base_key, myperm_transform_index, resolve_myperm_key
+from core.myperm_points import point_representative_transform
 from model.search_result import SearchResult, data
 
 PERFECT_VAL = 1.0e+8
@@ -502,28 +503,63 @@ class SolveSessionManager:
         else:
             state_key = ''.join(self.frame.cube.state)
 
-        if hasattr(self.frame.cube, 'last_perms_key'):
+        matched_key = self.frame.myperms_col.get(state_key)
+        if matched_key is not None:
+            perfect_key = myperm_base_key(matched_key)
+            simplified_lis = self._registered_base_transform_last_perms(
+                tuple(simplified_lis),
+                matched_key,
+            )
+        elif hasattr(self.frame.cube, 'last_perms_key'):
             perfect_key = self.frame.cube.last_perms_key()
             if hasattr(self.frame.cube, 'last_perms_changed_number'):
                 perfect_changed_number = self.frame.cube.last_perms_changed_number()
         else:
             group_key, perfect_changed_number = self._group_changed_info(x)
             if getattr(self.frame.cube, 'myperms', None) and len(simplified_lis) > 0:
-                effect = MypermEffectAnalyzer(self.frame.cube).analyze(tuple(simplified_lis))
+                simplified_lis = self._point_representative_last_perms(tuple(simplified_lis))
+                effect = MypermEffectAnalyzer(self.frame.cube).analyze(simplified_lis)
                 perfect_key = 'LP:' + effect.concise_name()
             else:
                 perfect_key = group_key
-                
-        if state_key in self.frame.myperms_col:
-            matched_key = self.frame.myperms_col[state_key]
-            perfect_key = myperm_base_key(matched_key)
-            transform_index = myperm_transform_index(matched_key)
-            if transform_index is not None:
-                simplified_lis = self.frame.cube.transform(simplified_lis, transform_index)
         self.frame.solve_state.last_perfect_key = perfect_key
         self.frame.solve_state.last_perfect_changed_number = perfect_changed_number
         self.frame.solve_state.last_simplified_lis = tuple(simplified_lis)
         return simplified_lis
+
+    def _registered_base_transform_last_perms(self, moves, matched_key):
+        """登録済み last_perms を、その myperm 系列の #00 向きへ正規化する。"""
+        transform_index = myperm_transform_index(matched_key)
+        if transform_index is None or not hasattr(self.frame.cube, 'transform'):
+            return tuple(moves)
+
+        base_key = myperm_base_key(matched_key)
+        source_transform_index = self._registered_actual_transform_index(base_key, transform_index)
+        target_transform_index = self._registered_actual_transform_index(base_key, 0)
+        normalized_moves = self.frame.cube.transform(moves, source_transform_index)
+        if target_transform_index != 0:
+            normalized_moves = self.frame.cube.transform(
+                normalized_moves,
+                target_transform_index,
+                invert = True,
+            )
+        return tuple(normalized_moves)
+
+    def _registered_actual_transform_index(self, base_key, transform_index):
+        """point reindex 後の #NN から、実際の対称変換 index を取り出す。"""
+        point_rows = getattr(self.frame.cube, 'myperm_transform_points', {}).get(base_key)
+        if point_rows:
+            for row in point_rows:
+                if row.get("new_index") == transform_index:
+                    return int(row["old_index"])
+        return int(transform_index)
+
+    def _point_representative_last_perms(self, moves):
+        """LP fallback 用に、myperms_point が最大になる対称変換へ寄せる。"""
+        try:
+            return point_representative_transform(self.frame.cube, moves).moves
+        except (OSError, AttributeError, KeyError, TypeError, ValueError):
+            return tuple(moves)
 
     def _handle_no_progress_search(self, AI):
         """探索で状態が進まなかったときにsearch段階を打ち切る。"""
