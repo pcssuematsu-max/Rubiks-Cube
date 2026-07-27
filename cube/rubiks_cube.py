@@ -451,62 +451,59 @@ class Rubiks_3:
         parity_swap_moves['ParitySwap-JZB-'] = (" U'", ' B ', " R'") + PLLParity + (" B'", ' R ', " B'", ' D2', ' F ', " L'", " F'", ' D2', ' B ', ' U ', ' L ', ' U2', " L'", ' D ', ' L ', ' U2', " L'", " D'")
 
         self._parity_swap_basis_moves = parity_swap_moves
-        for legacy, name, transform_index in (
-            ('ParitySwap-A0', 'C2[DFR>RFU]+ME2[FL>FR]~v01', 32),
-            ('ParitySwap-A1', 'C2[DFR>RFU]+ME2[FL>FR]~v02', 32),
-            ('ParitySwap-A2', 'C2[UFL>FUR]+ME2[FL>FR]', 32),
-            ('ParitySwap-A3', 'C2[UBR>BUL]+ME2[FL>FR]', 32),
-            ('ParitySwap-A4', 'C2s[UFL<>URF]+ME2[FL>FR]', 32),
-            ('ParitySwap-A5', 'C2s[UBR<>ULB]+ME2[FL>FR]', 32),
-            ('ParitySwap-B0', 'C2s[DFR<>UFL]+ME2[FL>FR]~v01', 32),
-            ('ParitySwap-B1', 'C2s[DFR<>UFL]+ME2[FL>FR]~v02', 32),
-            ('ParitySwap-B2', 'C2s[ULB<>URF]+ME2[FL>FR]~v01', 34),
-            ('ParitySwap-B3', 'C2s[ULB<>URF]+ME2[FL>FR]~v02', 34),
-            ('ParitySwap-F0', 'C2[DBL>LUF]+ME2[FL>FR]~v01', 34),
-            ('ParitySwap-F1', 'C2[DBL>LUF]+ME2[FL>FR]~v02', 34),
-            ('ParitySwap-F2', 'C2[DFR>LUF]+ME2[FL>FR]~v01', 32),
-            ('ParitySwap-F3', 'C2[DFR>LUF]+ME2[FL>FR]~v02', 32),
-            ('ParitySwap-F4', 'C2[UBR>LUF]+ME2[FL>FR]~v01', 32),
-            ('ParitySwap-F5', 'C2[UBR>LUF]+ME2[FL>FR]~v02', 32),
-            ('ParitySwap-J0', 'C2[DRB>LUF]+ME2[FL>FR]~v01', 32),
-            ('ParitySwap-J1', 'C2[DRB>LUF]+ME2[FL>FR]~v02', 32),
-            ('ParitySwap-J2', 'C2[DRB>FLU]+ME2[FL>FR]~v01', 34),
-            ('ParitySwap-J3', 'C2[DRB>FLU]+ME2[FL>FR]~v02', 34),
-            ('ParitySwap-J4', 'C2s[DRB<>UFL]+ME2[FL>FR]~v01', 32),
-            ('ParitySwap-J5', 'C2s[DRB<>UFL]+ME2[FL>FR]~v02', 32),
-            ('ParitySwap-JXB', 'C2[DBL>RFU]+ME2s[FL<>RF]', 42),
-            ('ParitySwap-JYB', 'C2[DBL>FUR]+ME2s[FL<>RF]', 42),
-            ('ParitySwap-JZB', 'C2s[DBL<>URF]+ME2s[FL<>RF]', 41),
-            ('ParitySwap-K0', 'C2[UFL>RFU]+ME2[FL>FR]', 32),
-            ('ParitySwap-K1', 'C2[UBR>LBU]+ME2[FL>FR]', 32),
-            ('ParitySwap-XB', 'C2[DLF>LUF]+ME2s[FL<>RF]', 40),
-            ('ParitySwap-XC', 'C2[UFL>FUR]+ME2s[RF<>UF]', 19),
-            ('ParitySwap-XD', 'C2[UFL>FUR]+ME2s[FL<>UF]', 32),
-            ('ParitySwap-XE', 'C2[DFR>RFU]+ME2[RF>LU]', 0),
-            ('ParitySwap-XF', 'C2[DLF>FLU]+ME2s[FL<>UB]', 9),
-            ('ParitySwap-XG', 'C2[DLF>FLU]+ME2s[BR<>FL]', 16),
-            ('ParitySwap-XH', 'C2[DLF>FLU]+ME2[BR>LF]~v01', 9),
-            ('ParitySwap-YA', 'C2[DFR>FUR]+ME2[FL>FR]', 32),
-            ('ParitySwap-YB', 'C2[DLF>FLU]+ME2s[FL<>RF]', 40),
-            ('ParitySwap-YC', 'C2s[UFL<>URF]+ME2s[RF<>UF]', 19),
-            ('ParitySwap-YD', 'C2s[UFL<>URF]+ME2s[FL<>UF]', 32),
-            ('ParitySwap-YE', 'C2[DFR>FUR]+ME2[RF>LU]', 0),
-            ('ParitySwap-YF', 'C2[DLF>LUF]+ME2s[FL<>UB]', 9),
-            ('ParitySwap-YG', 'C2[DLF>LUF]+ME2s[BR<>FL]', 16),
-            ('ParitySwap-YH', 'C2[DLF>FLU]+ME2[BR>LF]~v02', 1),
-            ('ParitySwap-ZA', 'C2s[DFR<>URF]+ME2[FL>FR]', 32),
-            ('ParitySwap-ZB', 'C2s[DLF<>UFL]+ME2s[FL<>RF]', 8),
-            ('ParitySwap-ZC', 'C2[UFL>RFU]+ME2[FL>FU]', 27),
-            ('ParitySwap-ZD', 'C2[UFL>RFU]+ME2s[FL<>UF]', 3),
-            ('ParitySwap-ZE', 'C2[UBR>FUR]+ME2s[FL<>UR]', 3),
-            ('ParitySwap-ZF', 'C2s[DLF<>UFL]+ME2[FL>RU]', 10),
-            ('ParitySwap-ZG', 'C2s[DFR<>URF]+ME2s[LB<>RF]', 16),
-            ('ParitySwap-ZH', 'C2s[DLF<>UFL]+ME2[BR>LF]', 8),
-        ):
-            moves = parity_swap_moves[legacy + '-']
-            if transform_index:
-                moves = self.make_transformations(moves,tuple())[0][transform_index]
-            self._add_myperm2(name, moves)
+        def add_parity_swap(name, moves):
+            self._add_myperm2(name, self._moves_available_for_size(moves))
+
+        add_parity_swap('C2[DFR>RFU]+ME2[FL>FR]~v01', (" U'", ' R ', " U'", ' B2', ' D ', " L'", " D'", ' B2', ' U2', " R'", '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DFR>RFU]+ME2[FL>FR]~v02', (' R ', ' U2', ' B2', ' D ', ' L ', " D'", ' B2', ' U ', " R'", ' U ', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[UFL>FUR]+ME2[FL>FR]', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' R ', ' U2', ' B2', ' D ', ' L ', " D'", " L'", ' B2', ' L ', ' U ', " R'", ' U2', ' L ', ' U ', " L'", ' U2'))
+        add_parity_swap('C2[UBR>BUL]+ME2[FL>FR]', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' U2', ' R ', ' U2', ' B2', ' D ', ' L ', " D'", " L'", ' B2', ' L ', ' U ', " R'", ' U2', ' L ', ' U ', " L'"))
+        add_parity_swap('C2s[UFL<>URF]+ME2[FL>FR]', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' U2', ' F2', ' U2', ' F2', " U'", " R'", ' L ', ' F2', ' R ', " L'", ' U ', " D'", " F'", ' D ', " F'", ' R2', ' B ', " U'", " B'", ' R2'))
+        add_parity_swap('C2s[UBR<>ULB]+ME2[FL>FR]', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' F2', ' U2', ' F2', " U'", " R'", ' L ', ' F2', ' R ', " L'", ' U ', " D'", " F'", ' D ', " F'", ' R2', ' B ', " U'", " B'", ' R2', ' U2'))
+        add_parity_swap('C2s[DFR<>UFL]+ME2[FL>FR]~v01', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' L2', ' U2', ' F2', ' L ', ' F2', ' L2', ' U2', ' L ', ' F2', ' L2', ' F2', ' U2', ' L ', ' U2'))
+        add_parity_swap('C2s[DFR<>UFL]+ME2[FL>FR]~v02', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' U2', " L'", ' U2', ' F2', ' L2', ' F2', " L'", ' U2', ' L2', ' F2', " L'", ' F2', ' U2', ' L2'))
+        add_parity_swap('C2s[ULB<>URF]+ME2[FL>FR]~v01', (' L2', ' F2', ' U2', ' L ', ' U2', ' L2', ' F2', " L'", ' U2', ' L2', ' U2', ' F2', " L'", ' F2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2'))
+        add_parity_swap('C2s[ULB<>URF]+ME2[FL>FR]~v02', (' F2', ' L ', ' F2', ' U2', ' L2', ' U2', ' L ', ' F2', ' L2', ' U2', " L'", ' U2', ' F2', ' L2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2'))
+        add_parity_swap('C2[DBL>LUF]+ME2[FL>FR]~v01', ('2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' L ', " D'", ' B2', ' U ', " R'", " U'", ' B2', ' D2', " L'", " D'"))
+        add_parity_swap('C2[DBL>LUF]+ME2[FL>FR]~v02', ('2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' D ', ' L ', ' D2', ' B2', ' U ', ' R ', " U'", ' B2', ' D ', " L'"))
+        add_parity_swap('C2[DFR>LUF]+ME2[FL>FR]~v01', (" D'", ' L ', ' D2', ' B2', ' U ', ' R ', " U'", ' B2', ' D ', " L'", ' D2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DFR>LUF]+ME2[FL>FR]~v02', (' D2', ' L ', " D'", ' B2', ' U ', " R'", " U'", ' B2', ' D2', " L'", ' D ', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[UBR>LUF]+ME2[FL>FR]~v01', (' F2', ' R ', " U'", ' B2', ' D ', " L'", " D'", ' B2', ' U2', " R'", " U'", ' F2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[UBR>LUF]+ME2[FL>FR]~v02', (' F2', ' U ', ' R ', ' U2', ' B2', ' D ', ' L ', " D'", ' B2', ' U ', " R'", ' F2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DRB>LUF]+ME2[FL>FR]~v01', (' D2', ' L ', ' D2', ' B2', ' U ', ' R ', " U'", ' B2', ' D ', " L'", " D'", '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DRB>LUF]+ME2[FL>FR]~v02', (' D ', ' L ', " D'", ' B2', ' U ', " R'", " U'", ' B2', ' D2', " L'", ' D2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DRB>FLU]+ME2[FL>FR]~v01', (' D2', ' L ', " D'", ' B2', ' U ', " R'", " U'", ' B2', " D'", ' R ', " D'", " L'", ' D ', " R'", '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2'))
+        add_parity_swap('C2[DRB>FLU]+ME2[FL>FR]~v02', (' R ', " D'", ' L ', ' D ', " R'", ' D ', ' B2', ' U ', ' R ', " U'", ' B2', ' D ', " L'", ' D2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2'))
+        add_parity_swap('C2s[DRB<>UFL]+ME2[FL>FR]~v01', (' D2', ' L2', ' B2', ' U2', ' B2', ' L2', ' D ', ' F2', ' L2', " B'", " U'", ' B ', ' L2', " F'", ' D ', ' F ', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2s[DRB<>UFL]+ME2[FL>FR]~v02', (" F'", " D'", ' F ', ' L2', " B'", ' U ', ' B ', ' L2', ' F2', " D'", ' L2', ' B2', ' U2', ' B2', ' L2', ' D2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DBL>RFU]+ME2s[FL<>RF]', (' D2', " L'", ' F ', " D'", '2F2', '3F2', ' D2', ' L2', '2F2', '3F2', ' L2', ' D2', '2F2', '3F2', " F'", ' D ', " F'", ' R2', ' B ', " U'", " B'", ' R2', ' F ', ' L ', ' D2'))
+        add_parity_swap('C2[DBL>FUR]+ME2s[FL<>RF]', (' D2', " L'", ' F ', " D'", '2F2', '3F2', ' D2', ' L2', '2F2', '3F2', ' L2', ' D2', '2F2', '3F2', " D'", " L'", ' D ', ' L ', ' D ', " F'", ' D2', ' L ', ' D ', ' L ', " D'", " L'", ' D ', ' F ', ' D ', " F'", ' L ', ' D2'))
+        add_parity_swap('C2s[DBL<>URF]+ME2s[FL<>RF]', (" L'", ' F ', " D'", '2B2', '3B2', ' D2', ' L2', '2B2', '3B2', ' L2', ' D2', '2B2', '3B2', " F'", ' D ', " F'", ' R2', ' B ', " U'", " B'", ' R2', ' F ', ' L ', ' U ', ' L2', " U'", ' R ', ' U ', ' L2', " U'", " R'"))
+        add_parity_swap('C2[UFL>RFU]+ME2[FL>FR]', (' R ', ' F2', " L'", ' U2', ' L ', ' U2', ' R2', ' F2', " R'", ' F2', ' R ', ' F2', ' U2', ' R2', ' U2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[UBR>LBU]+ME2[FL>FR]', (' R2', ' U2', ' F2', " R'", ' F2', ' R ', ' F2', ' R2', ' U2', " L'", ' U2', ' L ', ' F2', " R'", ' U2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2'))
+        add_parity_swap('C2[DLF>LUF]+ME2s[FL<>RF]', (" R'", ' F ', " U'", '2F2', '3F2', ' U2', ' R2', '2F2', '3F2', ' R2', ' U2', '2F2', '3F2', " F'", ' U ', " F'", ' L2', ' B ', " D'", " B'", ' L2', ' F ', ' R '))
+        add_parity_swap('C2[UFL>FUR]+ME2s[RF<>UF]', (' U2', " B'", '2U2', '3U2', ' B2', ' R2', '2U2', '3U2', ' R2', ' B2', '2U2', '3U2', " U'", ' B ', " U'", ' L2', ' D ', " F'", " D'", ' L2'))
+        add_parity_swap('C2[UFL>FUR]+ME2s[FL<>UF]', (" U'", " R'", '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', " U'", ' R ', " U'", ' B2', ' D ', " L'", " D'", ' B2', " U'"))
+        add_parity_swap('C2[DFR>RFU]+ME2[RF>LU]', (' R ', '2F2', '3F2', ' R2', ' U2', '2F2', '3F2', ' U2', ' R2', '2F2', '3F2', ' F ', " R'", ' F ', ' D2', " B'", ' L ', ' B ', ' D2', ' F2'))
+        add_parity_swap('C2[DLF>FLU]+ME2s[FL<>UB]', (' L ', " D'", '2L2', '3L2', ' D2', ' B2', '2L2', '3L2', ' B2', ' D2', '2L2', '3L2', " L'", ' D ', " L'", ' F2', ' R ', " U'", " R'", ' F2', ' L '))
+        add_parity_swap('C2[DLF>FLU]+ME2s[BR<>FL]', (' F2', ' U ', " F'", ' U ', ' L2', " D'", ' B ', ' D ', ' L2', ' U2', ' F ', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2'))
+        add_parity_swap('C2[DLF>FLU]+ME2[BR>LF]~v01', (' B ', ' L ', " D'", " L'", ' D ', " L'", ' F2', ' R ', " U'", " R'", ' F2', ' L2', " D'", '2L2', '3L2', ' D2', ' B2', '2L2', '3L2', ' B2', ' D2', '2L2', '3L2', ' D ', " L'", " B'"))
+        add_parity_swap('C2[DFR>FUR]+ME2[FL>FR]', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', " R'", " F'", ' R ', ' F ', ' R ', " U'", ' R2', ' F ', ' R ', ' F ', " R'", " F'", ' R ', ' U '))
+        add_parity_swap('C2[DLF>FLU]+ME2s[FL<>RF]', (" R'", ' F ', " U'", '2F2', '3F2', ' U2', ' R2', '2F2', '3F2', ' R2', ' U2', '2F2', '3F2', " U'", " R'", ' U ', ' R ', ' U ', " F'", ' U2', ' R ', ' U ', ' R ', " U'", " R'", ' U ', ' F ', ' U ', " F'", ' R '))
+        add_parity_swap('C2s[UFL<>URF]+ME2s[RF<>UF]', (' U2', " B'", '2U2', '3U2', ' B2', ' R2', '2U2', '3U2', ' R2', ' B2', '2U2', '3U2', " B'", " R'", ' B ', ' R ', ' B ', " U'", ' B2', ' R ', ' B ', ' R ', " B'", " R'", ' B ', ' U ', ' B ', ' U2'))
+        add_parity_swap('C2s[UFL<>URF]+ME2s[FL<>UF]', (" U'", " R'", '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', " R'", " F'", ' R ', ' F ', ' R ', " U'", ' R2', ' F ', ' R ', ' F ', " R'", " F'", ' R ', ' U ', ' R ', ' U '))
+        add_parity_swap('C2[DFR>FUR]+ME2[RF>LU]', (' R ', '2F2', '3F2', ' R2', ' U2', '2F2', '3F2', ' U2', ' R2', '2F2', '3F2', ' R ', ' U ', " R'", " U'", " R'", ' F ', ' R2', " U'", " R'", " U'", ' R ', ' U ', " R'", " F'", " R'"))
+        add_parity_swap('C2[DLF>LUF]+ME2s[FL<>UB]', (' L ', " D'", '2L2', '3L2', ' D2', ' B2', '2L2', '3L2', ' B2', ' D2', '2L2', '3L2', " D'", " B'", ' D ', ' B ', ' D ', " L'", ' D2', ' B ', ' D ', ' B ', " D'", " B'", ' D ', ' L ', ' D ', " L'"))
+        add_parity_swap('C2[DLF>LUF]+ME2s[BR<>FL]', (' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F ', ' R ', " F'", " R'", " F'", ' U ', ' F2', " R'", " F'", " R'", ' F ', ' R ', " F'", " U'", ' F2'))
+        add_parity_swap('C2[DLF>FLU]+ME2[BR>LF]~v02', (' L ', ' D ', " B'", " D'", '2B2', '3B2', ' L2', ' D2', '2B2', '3B2', ' D2', ' L2', '2B2', '3B2', " L'", " D'", ' L ', ' D ', ' L ', " B'", ' L2', ' D ', ' L ', ' D ', " L'", " D'", ' L ', ' B ', ' D ', ' B ', " D'", " L'"))
+        add_parity_swap('C2s[DFR<>URF]+ME2[FL>FR]', ('2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' F2', ' D ', ' F2', " D'", ' F2', ' B2', ' R ', ' D ', " R'", ' B2', ' L ', " U'", ' L ', ' U ', ' L2'))
+        add_parity_swap('C2s[DLF<>UFL]+ME2s[FL<>RF]', (" R'", ' F ', " D'", '2R2', '3R2', ' U2', ' F2', '2R2', '3R2', ' F2', ' U2', '2R2', '3R2', ' F2', " L'", ' F2', ' L ', ' F2', ' B2', " U'", " L'", ' U ', ' B2', " D'", ' R ', " D'", " R'", " D'", " F'", ' R '))
+        add_parity_swap('C2[UFL>RFU]+ME2[FL>FU]', (' U2', ' F ', '2R2', '3R2', ' B2', ' U2', '2R2', '3R2', ' U2', ' B2', '2R2', '3R2', ' U2', " L'", ' U2', ' L ', ' U2', ' D2', " B'", " L'", ' B ', ' D2', " F'", ' R ', " F'", " R'", ' F ', ' U2'))
+        add_parity_swap('C2[UFL>RFU]+ME2s[FL<>UF]', (" U'", " L'", '2B2', '3B2', ' R2', ' U2', '2B2', '3B2', ' U2', ' R2', '2B2', '3B2', ' U2', ' F ', ' U2', " F'", ' U2', ' D2', ' R ', ' F ', " R'", ' D2', ' L ', " B'", ' L ', ' B ', " L'", ' U '))
+        add_parity_swap('C2[UBR>FUR]+ME2s[FL<>UR]', (" L'", '2B2', '3B2', ' R2', ' U2', '2B2', '3B2', ' U2', ' R2', '2B2', '3B2', ' U2', ' F ', ' U2', " F'", ' U2', ' D2', ' R ', ' F ', " R'", ' D2', ' L ', " B'", ' L ', ' B ', " L'"))
+        add_parity_swap('C2s[DLF<>UFL]+ME2[FL>RU]', (" F'", ' U ', '2L2', '3L2', ' D2', ' F2', '2L2', '3L2', ' F2', ' D2', '2L2', '3L2', ' F2', " R'", ' F2', ' R ', ' F2', ' B2', " D'", " R'", ' D ', ' B2', " U'", ' L ', " U'", " L'", ' U ', ' F '))
+        add_parity_swap('C2s[DFR<>URF]+ME2s[LB<>RF]', (' B2', '2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' R2', " D'", ' R2', ' D ', ' R2', ' L2', " F'", " D'", ' F ', ' L2', " B'", ' U ', " B'", " U'"))
+        add_parity_swap('C2s[DLF<>UFL]+ME2[BR>LF]', (' R ', ' F ', " D'", '2R2', '3R2', ' U2', ' F2', '2R2', '3R2', ' F2', ' U2', '2R2', '3R2', ' F2', " L'", ' F2', ' L ', ' F2', ' B2', " U'", " L'", ' U ', ' B2', " D'", ' R ', " D'", " R'", " D'", " F'", " R'"))
 
         if self.size >= 6:
             self._add_myperm2('C2[DRB>LUF]+ME2s[FL<>UL]', (' D2', ' F2', ' R ', '2F2', '3F2', ' R2', ' U2', '2F2', '3F2', ' U2', ' R2', '2F2', '3F2', ' F ', " R'", ' F ', ' D2', " B'", ' L ', ' B '))
@@ -603,8 +600,7 @@ class Rubiks_3:
                 self._add_myperm2('C2[DBL>FUR]+CtrCore4[B>L>F>R]~v02', (" U'", " B'", ' U ', ' R2', " D'", ' F ', ' D ', ' R2', ' U2', ' B ', ' U2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' E ', ' R ', ' E ', " R'", ' E ', " R'", ' E ', ' R ', ' E2', " R'", ' E ', ' R2', ' B2', " E'", " R'", " E'", ' R ', ' B2', " R'"))
                 self._add_myperm2('C2[DRB>LUF]+CtrCore4[B>L>F>R]~v01', (' D2', " F'", ' D ', ' R2', " U'", ' B ', ' U ', ' R2', ' D ', " B'", ' D ', ' F ', " D'", ' B ', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' E ', ' R ', ' E ', " R'", ' E ', " R'", ' E ', ' R ', ' E2', " R'", ' E ', ' R2', ' B2', " E'", " R'", " E'", ' R ', ' B2', " R'"))
                 self._add_myperm2('C2[DRB>LUF]+CtrCore4[B>L>F>R]~v02', (" B'", ' D ', " F'", " D'", ' B ', " D'", ' R2', " U'", " B'", ' U ', ' R2', " D'", ' F ', ' D2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' E ', ' R ', ' E ', " R'", ' E ', " R'", ' E ', ' R ', ' E2', " R'", ' E ', ' R2', ' B2', " E'", " R'", " E'", ' R ', ' B2', " R'"))
-                self._add_myperm2('C2s[DBL<>URF]+CtrCore4[B>L>F>R]~v01', (' U2', ' B2', ' R2', ' D2', ' R2', ' B2', " U'", ' L2', ' B2', ' R ', ' D ', " R'", ' B2', ' L ', " U'", " L'", '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' E ', ' R ', ' E ', " R'", ' E ', " R'", ' E ', ' R ', ' E2', " R'", ' E ', ' R2', ' B2', " E'", " R'", " E'", ' R ', ' B2', " R'"))
-                self._add_myperm2('C2s[DBL<>URF]+CtrCore4[B>L>F>R]~v02', (' L ', ' U ', " L'", ' B2', ' R ', " D'", " R'", ' B2', ' L2', ' U ', ' B2', ' R2', ' D2', ' R2', ' B2', ' U2', '2D2', '3D2', ' F2', ' L2', '2D2', '3D2', ' L2', ' F2', '2D2', '3D2', ' E ', ' R ', ' E ', " R'", ' E ', " R'", ' E ', ' R ', ' E2', " R'", ' E ', ' R2', ' B2', " E'", " R'", " E'", ' R ', ' B2', " R'"))
+                self._add_myperm2('C2s[DBL<>URF]+CtrCore4[B>L>F>R]~v01', (' E ', ' F ', ' E ', ' F2', ' R2', ' F ', ' E ', ' F ', ' E ', ' F2', ' R2', ' F ', ' E ', " R'", ' B ', " D'", '3F2', '2F2', ' D2', ' R2', '3F2', '2F2', ' R2', ' D2', '3F2', '2F2', " B'", ' D ', " B'", ' L2', ' F ', " U'", " F'", ' L2', ' B ', ' R ', " D'", ' R2', ' D ', " L'", " D'", ' R2', ' D ', ' L '))
                 self._add_myperm2('C2s[DFR<>URF]+CtrCore4[B>R>F>L]~v01', ('2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' R2', " D'", ' R2', ' D ', ' R2', ' L2', " F'", " D'", ' F ', ' L2', " B'", ' U ', " B'", " U'", ' B2', " E'", ' L ', " E'", " L'", " E'", " L'", " E'", ' L ', ' E2', " L'", " E'", ' L2', ' B2', ' E ', " L'", ' E ', ' L ', ' B2', " L'"))
                 self._add_myperm2('C2s[DFR<>URF]+CtrCore4[B>R>F>L]~v02', ('2U2', '3U2', ' F2', ' R2', '2U2', '3U2', ' R2', ' F2', '2U2', '3U2', ' R2', " D'", ' R2', ' D ', ' R2', ' L2', " F'", " D'", ' F ', ' L2', " B'", ' U ', " B'", " U'", ' B2', " E'", ' L ', " E'", " L'", " E'", " L'", " E'", ' L ', ' E2', " L'", " E'", ' L2', ' B2', ' E ', " L'", ' E ', ' L ', ' B2', " L'"))
             else:
