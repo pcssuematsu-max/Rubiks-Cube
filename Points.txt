@@ -39,6 +39,21 @@ Others:0
 #CoreCenter:
 F:1 B:1 L:1 R:1 U:0 D:0
 
+###megaminx
+#Corners
+(U,F,R):40 (U,R,bR):34 (U,bR,bL):22 (U,bL,L):26 (U,L,F):38
+(F,R,dR):20 (R,bR,sR):17 (bR,bL,B):11 (bL,L,sL):13 (L,F,dL):19
+(F,dR,dL):10 (R,sR,dR):10 (bR,B,sR):10 (bL,sL,B):10 (L,dL,sL):10
+Others:5
+
+#Edges
+(U,F):2000 (U,R):1900 (U,bR):1100 (U,bL):1300 (U,L):1700
+(F,R):1000 (R,bR):950 (bR,bL):550 (bL,L):650 (L,F):850
+(F,dR):500 (R,dR):500 (R,sR):500 (bR,sR):500 (bR,B):500
+(bL,B):500 (bL,sL):500 (L,sL):500 (L,dL):500 (F,dL):500
+(dR,dL):250 (dL,sL):250 (sL,B):250 (B,sR):250 (sR,dR):250
+Others:100
+
 各mypermsに対して「myperms_point」を設定したい。
 そのポジションのパーツが移動した際に上記のポイントを加算していき、
 transformで移り合える同じ系列のmypermsについて、最もポイントの高いものにtransformして#00として設定したい。

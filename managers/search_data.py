@@ -249,7 +249,7 @@ class SearchDataManager:
         if search_result.search_mode == 'search2':
             return 1.0
         if search_result.search_mode == 'myval':
-            return 1.0
+            return 0.2
         return 1.0
 
     def dataset_summary_text(self, ai_index):

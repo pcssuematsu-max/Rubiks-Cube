@@ -1290,7 +1290,7 @@ class Rubiks_3:
             self._add_myperm2('W2-4s[BR@U<>FL@D;FL@U<>RF@U]', (' R2', ' F2', ' R ', "2F'", " R'", ' F2', ' R ', '2F2', ' R ', ' F2', " R'", "2F'", ' R ', ' F2'))
             self._add_myperm2('W2-4s[BR@U<>FL@U;FL@D<>RF@U]', ('2U2', ' L2', "2U'", ' L2', "2U'", ' F2', '2D2', ' R2', "2D'", ' R2', "2D'", ' F2'))
             self._add_myperm2('W2-4s[BR@U<>RF@U;FL@D<>FL@U]', ('2U ', ' L2', "2D'", ' L2', '2D2', ' R2', "2D'", ' F2', '2D ', ' F2', '2D ', ' R2', '2D2', ' F2', "2U'", ' F2'))
-            self._add_myperm2('W2-4[BR@U>FL@U>RF@D>FL@D]', (' B2', '2U2', ' B2', '2U ', ' F2', "2U'", ' F2', ' B2', ' L2', "2U'", ' L2', '2D ', ' F2', "2D'", ' F2', '2U2', ' B2'))
+            self._add_myperm2('W2-4[BR@U>FL@U>RF@D>FL@D]', ('2U2', ' L2', "2U'", ' L2', '2D ', ' L2', "2D'", ' L2', ' F2', "2U'", ' F2', ' L2', ' B2', '2U ', ' B2', ' L2'))
             self._add_myperm2('W2-4[BR@U>FL@D>RF@D>FL@U]', (' B2', '2U2', ' F2', '2D ', ' F2', "2D'", ' L2', '2U ', ' L2', ' B2', ' F2', '2U ', ' F2', "2U'", ' B2', '2U2', ' B2'))
             self._add_myperm2('W2-4[BR@U>RF@D>FL@D>FL@U]', ('2U ', ' F2', '2U ', ' F2', ' R2', '2U ', '2D ', ' R2', "2D'", ' R2', "2U'", ' R2', "2U'"))
             self._add_myperm2('W2-4[BR@U>FL@U>FL@D>RF@D]', ('2U ', ' R2', '2U ', ' R2', '2D ', ' R2', "2D'", "2U'", ' R2', ' F2', "2U'", ' F2', "2U'"))
