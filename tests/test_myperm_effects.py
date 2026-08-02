@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 import gc
 
-from core.myperm_effects import MypermEffectAnalyzer
+from core.myperm_effects import EffectComponent, MypermEffectAnalyzer, PieceTransfer
 from core.myperm_keys import make_myperm_key, resolve_myperm_key
 from cto.cube import CtoCube
 from cube.rubiks_cube import Rubiks_3
@@ -38,6 +38,28 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
         corner_name = self.analyzer.proposed_name(make_myperm_key("C2[UFL>FLU;URF>FUR]", 0))
         self.assertEqual(edge_name, "E2[FL>LF;RF>FR]")
         self.assertEqual(corner_name, "C2[UFL>FLU;URF>FUR]")
+
+    def test_mixed_corner_cycle_and_twists_are_not_collapsed_to_short_cycle(self):
+        component = EffectComponent(
+            group = "Corner",
+            part_code = "C",
+            piece_size = 3,
+            transfers = (
+                PieceTransfer("Corner", "C", 0, 1, "U.bL.bR", "URF", "URF"),
+                PieceTransfer("Corner", "C", 1, 2, "URF", "sR.bR.B", "sR.bR.B"),
+                PieceTransfer("Corner", "C", 2, 0, "sR.bR.B", "U.bL.bR", "U.bL.bR"),
+                PieceTransfer("Corner", "C", 3, 3, "UFL", "UFL", "FLU", "twist"),
+                PieceTransfer("Corner", "C", 4, 4, "R.U.bR", "R.U.bR", "U.bR.R", "twist"),
+            ),
+            cycles = (("U.bL.bR", "URF", "sR.bR.B"),),
+        )
+
+        name = component.concise_name()
+
+        self.assertEqual(
+            name,
+            "C5[R.U.bR>U.bR.R;U.bL.bR>URF;UFL>FLU;URF>sR.bR.B;sR.bR.B>U.bL.bR]",
+        )
 
     def test_transformed_key_uses_transformed_positions(self):
         original = self.analyzer.proposed_name(make_myperm_key("C3[UBR>UFL>URF]", 0))
@@ -111,7 +133,7 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
         self.assertEqual(resolve_myperm_key(self.cube7, "C2[DFR>FUR]+CtrCore4[B>R>F>L]~v01"), corner_key)
         self.assertEqual(
             resolve_myperm_key(self.cube7, 'C2s[DBL<>URF]+CtrCore4[B>L>F>R]~v01'),
-            make_myperm_key("C2s[DBL<>URF]+CtrCore4[B>L>F>R]~v01", 0),
+            make_myperm_key("C2s[DBL<>URF]+CtrCore4[B>L>F>R]", 0),
         )
 
     def test_commutator_source_names_resolve_by_size_specific_effects(self):

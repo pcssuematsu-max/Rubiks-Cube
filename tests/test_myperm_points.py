@@ -5,8 +5,10 @@ from core.myperm_points import (
     load_myperm_points,
     parse_myperm_points_text,
 )
-from core.myperm_keys import resolve_myperm_key
+from core.myperm_effects import MypermEffectAnalyzer
+from core.myperm_keys import make_myperm_key, resolve_myperm_key
 from cube.rubiks_cube import Rubiks_3
+from megaminx.cube import MegaminxCube
 
 
 class MypermPointTableTest(unittest.TestCase):
@@ -50,6 +52,41 @@ class MypermPointTableTest(unittest.TestCase):
         table = load_myperm_points()
 
         self.assertEqual(table.edge_bundle_point(cube, "UF@M"), 820)
+
+    def test_parser_can_load_megaminx_points_separately(self):
+        text = """
+        #Corners
+        UFR:2
+        ###megaminx
+        #Corners
+        (U,F,R):40
+        #Edges
+        (U,bR):1100
+        """
+        rubik_table = parse_myperm_points_text(text)
+        megaminx_table = parse_myperm_points_text(text, puzzle = "megaminx")
+
+        self.assertEqual(rubik_table.point_for_part("C", "UFR"), 2)
+        self.assertEqual(rubik_table.point_for_part("C", "URF"), 2)
+        self.assertEqual(megaminx_table.point_for_part("C", "UFR"), 40)
+        self.assertEqual(megaminx_table.point_for_part("E", "U.bR"), 1100)
+        self.assertEqual(megaminx_table.point_for_part("E", "bR.U"), 1100)
+
+    def test_megaminx_source_names_are_point_representative_effect_names(self):
+        cube = MegaminxCube()
+        analyzer = MypermEffectAnalyzer(cube)
+        calculator = MypermPointCalculator(cube, load_myperm_points(puzzle = "megaminx"))
+
+        for name in cube.myperms2:
+            with self.subTest(name = name):
+                key = make_myperm_key(name, 0)
+                self.assertEqual(name.split("~v", 1)[0], analyzer.proposed_name(key))
+                current_point = calculator.point_for_key(key)
+                best_point = max(
+                    calculator.point_for_key(make_myperm_key(name, transform_index))
+                    for transform_index in range(len(cube.transformation_keys))
+                )
+                self.assertEqual(current_point, best_point)
 
 
 if __name__ == "__main__":

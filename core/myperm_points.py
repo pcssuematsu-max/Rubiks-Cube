@@ -14,6 +14,8 @@ from core.myperm_keys import make_myperm_key
 SECTION_ALIASES = {
     "Corners":"C",
     "Corner":"C",
+    "Edges":"E",
+    "Edge":"E",
     "MidEdge":"ME",
     "Wing":"W",
     "XCenter":"CtrX",
@@ -38,6 +40,8 @@ class MypermPointTable:
             return self._mid_edge_point(canonical_position)
         if canonical_part == "C":
             return self._corner_point(canonical_position)
+        if canonical_part == "E":
+            return self._edge_point(canonical_position)
         if canonical_part == "ME":
             return self._mid_edge_point(canonical_position)
         if canonical_part == "W":
@@ -71,17 +75,23 @@ class MypermPointTable:
         section = self.points_by_part.get(part_code, {})
         if position in section:
             return section[position]
+        normalized_position = self._normalize_position(position)
+        if normalized_position in section:
+            return section[normalized_position]
         return self.default_by_part.get(part_code, 0)
 
     def _corner_point(self, position):
         section = self.points_by_part.get("C", {})
         if position in section:
             return section[position]
-        faces = frozenset(position)
+        faces = frozenset(self._position_faces(position))
         for configured_position, point in section.items():
-            if frozenset(configured_position) == faces:
+            if frozenset(self._position_faces(configured_position)) == faces:
                 return point
         return self.default_by_part.get("C", 0)
+
+    def _edge_point(self, position):
+        return self._lookup_first("E", self._edge_position_aliases(position))
 
     def _mid_edge_point(self, position):
         position = self._strip_edge_axis(position)
@@ -102,7 +112,19 @@ class MypermPointTable:
             section = self.points_by_part.get(part_code, {})
             if position in section:
                 return section[position]
+            normalized_position = self._normalize_position(position)
+            if normalized_position in section:
+                return section[normalized_position]
         return self.default_by_part.get(part_code, 0)
+
+    def _edge_position_aliases(self, position):
+        faces = self._position_faces(self._strip_edge_axis(position))
+        if len(faces) != 2:
+            return (position,)
+        return (
+            self._join_faces(faces),
+            self._join_faces(tuple(reversed(faces))),
+        )
 
     def _center_position_aliases(self, position):
         position = str(position)
@@ -117,6 +139,8 @@ class MypermPointTable:
 
     def _canonical_part_code(self, part_code):
         if part_code == "E":
+            if "E" in self.points_by_part:
+                return "E"
             return "ME"
         if part_code == "EAll":
             return "EAll"
@@ -141,6 +165,25 @@ class MypermPointTable:
         edge, axis = position.split("@", 1)
         axis = axis.lstrip("0123456789")
         return f"{edge}@{axis}"
+
+    def _normalize_position(self, position):
+        return self._join_faces(self._position_faces(position))
+
+    def _position_faces(self, position):
+        position = str(position)
+        if "@" in position:
+            position = position.split("@", 1)[0]
+        if position.startswith("(") and position.endswith(")"):
+            return tuple(part.strip() for part in position[1:-1].split(",") if part.strip())
+        if "." in position:
+            return tuple(part for part in position.split(".") if part)
+        return tuple(position)
+
+    def _join_faces(self, faces):
+        faces = tuple(faces)
+        if any(len(face) > 1 for face in faces):
+            return ".".join(faces)
+        return "".join(faces)
 
 
 class MypermPointCalculator:
@@ -334,15 +377,25 @@ def reindex_myperms_by_points(cube, point_table, names = None):
     return reindex_by_name
 
 
-def parse_myperm_points_text(text):
+def parse_myperm_points_text(text, puzzle = None):
     """Parse Points.txt content into a MypermPointTable."""
     points_by_part = {}
     default_by_part = {}
     current_part = None
+    current_puzzle = None
+    target_puzzle = None if puzzle is None else str(puzzle).strip().lower()
 
     for line_number, raw_line in enumerate(text.splitlines(), start = 1):
         line = raw_line.strip()
         if not line:
+            continue
+        if line.startswith("###"):
+            current_puzzle = line.lstrip("#").strip().lower()
+            current_part = None
+            continue
+        if target_puzzle is None and current_puzzle is not None:
+            continue
+        if target_puzzle is not None and current_puzzle != target_puzzle:
             continue
         if line.startswith("#"):
             section_name = line[1:].strip().rstrip(":")
@@ -362,14 +415,18 @@ def parse_myperm_points_text(text):
             if name == "Others":
                 default_by_part[current_part] = value
             else:
-                points_by_part.setdefault(current_part, {})[name] = value
+                if current_part in {"C", "E"}:
+                    normalized_name = MypermPointTable({}, {})._normalize_position(name)
+                else:
+                    normalized_name = name
+                points_by_part.setdefault(current_part, {})[normalized_name] = value
 
     return MypermPointTable(points_by_part = points_by_part, default_by_part = default_by_part)
 
 
-def load_myperm_points(path = "Points.txt"):
+def load_myperm_points(path = "Points.txt", puzzle = None):
     """Load a point table from Points.txt."""
-    return parse_myperm_points_text(Path(path).read_text(encoding = "utf-8"))
+    return parse_myperm_points_text(Path(path).read_text(encoding = "utf-8"), puzzle = puzzle)
 
 
 def _parse_point_value(value_text, line_number):

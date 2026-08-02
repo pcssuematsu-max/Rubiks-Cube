@@ -126,6 +126,8 @@ class EffectComponent:
             return ""
         if not self.cycles or len(self.transfers) > max_positions:
             return ""
+        if sum(len(cycle) for cycle in self.cycles) != len(self.transfers):
+            return ""
 
         oriented_map = {}
         for transfer in self.transfers:
@@ -844,6 +846,11 @@ def rename_myperms_by_effect(cube):
                 current_key_map.get(key, key) for key in keys
             }
             for old_name, keys in cube.myperms_sequence_group.items()
+        }
+    if hasattr(cube, "myperm_transform_points"):
+        cube.myperm_transform_points = {
+            name_aliases.get(old_name, old_name):rows
+            for old_name, rows in cube.myperm_transform_points.items()
         }
     if hasattr(cube, "single_and_rotate"):
         cube.single_and_rotate = [current_key_map.get(key, key) for key in cube.single_and_rotate]
