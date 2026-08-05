@@ -287,7 +287,10 @@ class MypermPointTransform:
 def point_representative_transform(cube, moves, point_table = None, include_internal_centers = False):
     """Return the transform of moves with the highest myperms_point score."""
     if point_table is None:
-        point_table = load_myperm_points(Path(__file__).resolve().parent.parent / "Points.txt")
+        point_table = load_myperm_points(
+            Path(__file__).resolve().parent.parent / "Points.txt",
+            puzzle = getattr(cube, "myperm_point_puzzle", None),
+        )
 
     calculator = MypermPointCalculator(cube, point_table)
     transform_count = len(getattr(cube, "transformation_keys", ()))

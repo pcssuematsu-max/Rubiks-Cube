@@ -597,6 +597,23 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
         self.assertNotEqual(tuple(moves), solve_state.last_simplified_lis)
         self.cube.reset()
 
+    def test_megaminx_unregistered_last_perms_key_uses_megaminx_point_representative_transform(self):
+        puzzle = MegaminxCube()
+        moves = ("L2'", "U'", "R", "U", "L2", "U'", "R'", "U")
+        solve_state = SolveSessionState()
+        frame = SimpleNamespace(
+            cube = puzzle,
+            solve_state = solve_state,
+            myperms_col = {},
+        )
+
+        returned_moves = SolveSessionManager(frame)._store_perfect_key(moves)
+
+        self.assertEqual(solve_state.last_perfect_key, "LP:C3[U.bR.R>L.sL.bL>LUF]")
+        self.assertEqual(returned_moves, solve_state.last_simplified_lis)
+        self.assertNotEqual(tuple(moves), solve_state.last_simplified_lis)
+        puzzle.reset()
+
     def test_supported_puzzles_can_analyze_a_registered_myperm(self):
         puzzle_factories = (
             MegaminxCube,

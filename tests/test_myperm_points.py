@@ -4,6 +4,7 @@ from core.myperm_points import (
     MypermPointCalculator,
     load_myperm_points,
     parse_myperm_points_text,
+    point_representative_transform,
 )
 from core.myperm_effects import MypermEffectAnalyzer
 from core.myperm_keys import make_myperm_key, resolve_myperm_key
@@ -87,6 +88,25 @@ class MypermPointTableTest(unittest.TestCase):
                     for transform_index in range(len(cube.transformation_keys))
                 )
                 self.assertEqual(current_point, best_point)
+
+    def test_megaminx_lp_transform_uses_megaminx_points(self):
+        cube = MegaminxCube()
+        moves = ("L2'", "U'", "R", "U", "L2", "U'", "R'", "U")
+        calculator = MypermPointCalculator(cube, load_myperm_points(puzzle = "megaminx"))
+
+        row = point_representative_transform(cube, moves)
+        representative_name = MypermEffectAnalyzer(cube).analyze(row.moves).concise_name()
+
+        self.assertEqual(row.transform_index, 56)
+        self.assertEqual(row.point, 85)
+        self.assertEqual(representative_name, "C3[U.bR.R>L.sL.bL>LUF]")
+        self.assertEqual(
+            calculator.point_for_moves(row.moves),
+            max(
+                calculator.point_for_moves(cube.transform(moves, transform_index))
+                for transform_index in range(len(cube.transformation_keys))
+            ),
+        )
 
 
 if __name__ == "__main__":
