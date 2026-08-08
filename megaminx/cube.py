@@ -105,12 +105,15 @@ class MegaminxCube:
         self.myperms2['C5[U.L.bL>URF>R.U.bR>sR.R.bR>LUF]+E3[UL>UR>bR.R]'] = ("U2'", "R'", 'U2', 'R')
         self.myperms2['C5[U.L.bL>LUF>R.U.bR>URF>R.dR.F]+E3[RF>LU>RU]'] = ("U2'", 'R', 'U2', "R'")
         self.myperms2['C6[R.sR.dR>bR.R.U>FLU;U.L.bL>sR.R.bR>URF]+E3[UL>sR.R>UR]'] = ("R2'", "U2'", 'R2', 'U2')
-        self.myperms2['C6[R.sR.dR>FUR>bL.U.L;U.bR.R>UFL>dR.F.R]+E3[R.dR>RU;UL>dR.R;UR>UL]'] = ("R2","U2'","R2'","U2")
+        self.myperms2['C6[R.sR.dR>FUR>bL.U.L;U.bR.R>UFL>dR.F.R]+E3[R.dR>RU>LU]'] = ("R2","U2'","R2'","U2")
 
-        self.myperms2['C4[U.L.bL>bR.sR.R;UFL>FUR;URF>UFL;sR.R.bR>bL.U.L]+E3[UF>UL;UL>R.bR;bR.R>FU]'] = ("U2'", 'bR', "U'", "bR'", "U2'")
+        self.myperms2['C4[U.L.bL>bR.sR.R;UFL>FUR;URF>UFL;sR.R.bR>bL.U.L]+E3[UF>UL>R.bR]'] = ("U2'", 'bR', "U'", "bR'", "U2'")
         self.myperms2['C6[U.L.bL>URF;U.bL.bR>R.dR.F;U.bR.R>U.bL.bR;UFL>U.bR.R;URF>bL.U.L;dR.F.R>LUF]+E6p[3x2][RF>UL>UR;U.bL>UF>U.bR]'] = ('U2', "F'", "U'", 'F', 'U2')
-        self.myperms2['C4[U.L.bL>R.bR.sR;UFL>URF;URF>FLU;sR.R.bR>L.bL.U]+E3[UF>R.bR;UL>UF;bR.R>LU]'] = ('U2', 'bR', 'U', "bR'", 'U2')
+        self.myperms2['C4[U.L.bL>R.bR.sR;UFL>URF;URF>FLU;sR.R.bR>L.bL.U]+E3[UF>R.bR>UL]'] = ('U2', 'bR', 'U', "bR'", 'U2')
         self.myperms2['C6[U.L.bL>UFL;U.bL.bR>FUR;U.bR.R>R.dR.F;UFL>U.bR.R;URF>U.bL.bR;dR.F.R>bL.U.L]+E6[RF>FU>Rb.U;U.bL>UL>UR]'] = ("U2","R","U'","R'","U2")
+        self.myperms2['C4[U.L.bL>UFL;UFL>L.bL.U;URF>R.bR.sR;sR.R.bR>RFU]+E3[UF>bR.R>UL]'] = ("U2'", "R'", 'U', 'R', 'U')
+        self.myperms2['C4[U.bR.R>URF;UFL>bR.sR.R;URF>R.U.bR;sR.R.bR>LUF]+E3[UF>R.bR>UR]'] = ("U'", 'bR', "U'", "bR'", 'U2')
+
 
 
 
@@ -166,7 +169,7 @@ class MegaminxCube:
         self.myperms2['C3[U.bR.R>UFL>sL.bL.L]'] = ("L'", "bL'", 'bR', 'bL', 'L2', "bL'", "bR'", 'bL', "L'")
         self.myperms2['C3[U.bR.R>sL.bL.L>UFL]'] = ('L', "bL'", 'bR', 'bL', "L2'", "bL'", "bR'", 'bL', 'L')
         self.myperms2['C3[UFL>sR.R.bR>FUR]'] = ('bR', "U'", "bR'", 'U', 'F', "U'", 'bR', 'U', "bR'", "F'")
-        self.myperms2['C3[UFL>RFU>R.bR.sR]'] = ('F', "U'", 'bR', 'U', "dR'", "F2'", "U'", "bR'", 'U', 'F2', 'dR', "F'")
+        self.myperms2['C3[UFL>RFU>R.bR.sR]'] = ("L'", 'R', 'bR', "bL'", "bR'", "R2'", 'bR', 'bL', "bR'", 'R', 'L')
         self.myperms2['C3[UFL>FUR>bR.sR.R]'] = ('F2', 'dR', "sR'", "dR'", "F'", 'dR', 'sR', "dR'", "F'")
         self.myperms2['C3[UFL>R.bR.sR>RFU]'] = ('F', "dR'", "F2'", "U'", 'bR', 'U', 'F2', 'dR', "U'", "bR'", 'U', "F'")
         self.myperms2['C3[U.bR.R>L.sL.bL>LUF]'] = ('L2', 'F', "R'", "F'", "L2'", 'F', 'R', "F'")
@@ -175,6 +178,22 @@ class MegaminxCube:
         self.myperms2['C3[U.bR.R>sL.bL.L>LUF]'] = ("R'", 'U', 'L', "U'", 'R', 'U', "L'", "bL'", "U'", "F'", 'U', 'bL', "U'", 'F')
         self.myperms2['C3[U.bR.R>bL.L.sL>FLU]'] = ('bR', 'L', "bL'", "bR'", 'bL', "L2'", "bL'", 'bR', 'bL', "bR'", 'L')
         self.myperms2['C3[UFL>URF>R.bR.sR]'] = ('bR', 'U', 'F', "U'", "bR'", 'U', "F'", "U'", "F'", "L'", 'F', "R'", "F'", 'L', 'F', 'R')
+        self.myperms2['C3[U.bR.R>LUF>L.sL.bL]'] = ('F', "R'", "F'", 'L2', 'F', 'R', "F'", "L2'")
+        self.myperms2['C3[B.bR.bL>URF>FLU]'] = ("U'", "bR2'", 'U', 'F', "U'", 'bR2', 'U', "F'")
+        self.myperms2['C3[UFL>sL.B.bL>FUR]'] = ('sL2', 'dL', 'F', 'U', "F'", "dL'", 'F', "U'", "F'", "U'", "R'", 'U', "L'", "U'", 'R', 'U', 'L', "sL2'")
+        self.myperms2['C3[D.B.sL>U.bR.R>LUF]'] = ('sL2', "bL2'", "bR'", "R'", 'F', 'R', 'bR', 'bL2', "R'", "F'", 'R', "sL2'")
+        self.myperms2['C3[UFL>URF>bR.sR.R]'] = ("F'", "U'", 'bR', 'U', 'F', "U'", "bR'", "R'", "dR'", 'R', 'U', "R'", 'dR', 'R')
+        self.myperms2['C3[B.bR.bL>FLU>URF]'] = ('F', 'bL', 'R', "bR'", "R'", "F'", 'R', 'bR', "R'", "bL'")
+        self.myperms2['C3[U.bR.R>B.sR.bR>UFL]'] = ('bR', 'bL', "L'", "bL'", 'bR2', 'bL', 'L', "bL'", 'bR2')
+        self.myperms2['C3[UFL>sR.bR.B>URF]'] = ("U'", 'R', "sR'", "R'", "U'", 'R', 'sR', "R'", 'U2')
+        
+        self.myperms2['C3A'] = ("sR'",'bR', 'bL', "L'", "bL'", 'bR2', 'bL', 'L', "bL'", 'bR2',"sR")
+        self.myperms2['C3B'] = ("D","sR'",'bR', 'bL', "L'", "bL'", 'bR2', 'bL', 'L', "bL'", 'bR2',"sR","D'")
+        self.myperms2['C3C'] = ("D'","sR'",'bR', 'bL', "L'", "bL'", 'bR2', 'bL', 'L', "bL'", 'bR2',"sR","D")
+        self.myperms2['C3D'] = ("D2","sR'",'bR', 'bL', "L'", "bL'", 'bR2', 'bL', 'L', "bL'", 'bR2',"sR","D2'")
+        self.myperms2['C3E'] = ("D2'","sR'",'bR', 'bL', "L'", "bL'", 'bR2', 'bL', 'L', "bL'", 'bR2',"sR","D2")
+
+
 
 
 
@@ -182,9 +201,14 @@ class MegaminxCube:
 
         self.myperms2['C3[U.L.bL>bR.R.U>RFU]+E3[UF>LU>UR]'] = ('L', "F'", "L'", 'F', 'U', 'F', "U'", "F'")
         self.myperms2['C3[U.L.bL>RFU>bR.R.U]+E3[UF>UR>LU]'] = ('F', 'U', "F'", "U'", "F'", 'L', 'F', "L'")
+        self.myperms2['C3[U.L.bL>RFU>bR.R.U]+E3[UL>dR.F>RU]'] = ("R'", "F'", 'R', "F'", "U'", 'F', 'U', 'F')
+        self.myperms2['C3[U.L.bL>bR.R.U>RFU]+E3[UL>RU>dR.F]'] = ("F'", "U'", "F'", 'U', 'F', "R'", 'F', 'R')
 
         self.myperms2['C4[U.bR.R>R.dR.F;UFL>RFU;URF>UFL;dR.F.R>U.bR.R]+E2[UF>FU;UR>RU]'] = ("R","U'","R'","U","R'","F","R","F'")
         self.myperms2['C4[U.bR.R>dR.F.R;UFL>URF;URF>LUF;dR.F.R>bR.R.U]+E2[UF>FU;UR>RU]'] = ("F","R'","F'","R","U'","R","U","R'")
+
+        self.myperms2['C4[L.dL.sL>L.bL.U;U.L.bL>L.dL.sL;U.bR.R>URF;URF>R.U.bR]+E3[L.sL>RU>FU]'] = ('L', 'U2', 'L', "U'", "L'", "U'", "L'")
+        self.myperms2['C4[U.bL.bR>B.sR.bR;UFL>FUR;URF>UFL;bR.B.sR>U.bL.bR]+E3[B.bR>UR>UF]'] = ("bR'", "U'", "bR'", "U'", 'bR', 'U2', 'bR')
 
 
 
@@ -205,42 +229,78 @@ class MegaminxCube:
         self.myperms2['E3[UF>RU>LU]'] = ("R'", "F'", "U'", "F", "U", "R", "L", "U", "F", "U'", "F'", "L'")
         self.myperms2['E3[UF>UR>LU]'] = ("F'", "U'", "L'", "U", "L", "F", "R'", "U'", "F'", "U'", "F", "U2", "R")
 
-        self.myperms2['E3[U.bL>FU;UF>UR;UR>bL.U]'] = ('F', 'U', 'R', 'U', "R'", "U2'", "F'", 'R', 'U', 'bR', "U'", "bR'", "R'")
+        self.myperms2['E3[U.bL>FU>RU]'] = ('F', 'U', 'R', 'U', "R'", "U2'", "F'", 'R', 'U', 'bR', "U'", "bR'", "R'")
         self.myperms2['E3[U.bL>UF>UR]'] = ("bL'", "bR'", 'F', 'U2', 'R', "U'", "R'", "U'", "F'", 'R', 'bR', 'U', "bR'", "U'", "R'", 'bR', 'bL')
         self.myperms2['E3[U.bL>FU>UR]'] = ("bL'", "bR2'", "R'", "U'", 'R', 'U', 'bR', 'F', 'U', 'R', "U'", "R'", "F'", 'bR', 'bL')
-        self.myperms2['E3[U.bL>UF;UF>RU;UR>bL.U]'] = ("bL'", "bR'", "R'", "U'", "F'", 'U', 'F', 'R', "bR'", "U'", "R'", "U'", 'R', 'U2', 'bR2', 'bL')
+        self.myperms2['E3[U.bL>UF>RU]'] = ("bL'", "bR'", "R'", "U'", "F'", 'U', 'F', 'R', "bR'", "U'", "R'", "U'", 'R', 'U2', 'bR2', 'bL')
 
         self.myperms2['E3[RF>UR>UL]'] = ("F'", 'L', 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F', 'U', 'R', 'F')
         self.myperms2['E3[RF>LU>RU]'] = ("U'", 'R', "bR'", "U'", "R'", 'U', 'R', 'bR', 'F', 'R', 'U', "R'", "U'", "F'", "R'", 'U')
         self.myperms2['E3[UL>bR.R>UR]'] = ("U'", "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', 'U')
-        self.myperms2['E3[UL>UR;UR>R.bR;bR.R>LU]'] = ("U2'", 'bR', "bL'", "U'", "bR'", 'U', 'bR', 'bL', 'R', 'bR', 'U', "bR'", "U'", "R'", "bR'", 'U2')
+        self.myperms2['E3[UL>UR>R.bR]'] = ("U2'", 'bR', "bL'", "U'", "bR'", 'U', 'bR', 'bL', 'R', 'bR', 'U', "bR'", "U'", "R'", "bR'", 'U2')
         self.myperms2['E3[U.bL>bR.R>UF]'] = ("U2'", "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', 'U2')
-        self.myperms2['E3[UF>UR;UR>R.bR;bR.R>FU]'] = ('bR', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U')
+        self.myperms2['E3[UF>UR>R.bR]'] = ('bR', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U')
         self.myperms2['E3[RF>FU>RU]'] = ('U', 'R', 'L', 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F')
-        self.myperms2['E3[UF>R.bR;UL>UF;bR.R>LU]'] = ("U'", 'bR', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U2')
+        self.myperms2['E3[UF>R.bR>UL]'] = ("U'", 'bR', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U2')
         self.myperms2['E3[UF>bR.R>UR]'] = ("U2'", "R'", "bL'", "U'", "bR'", 'U', 'bR', 'bL', 'R', 'bR', 'U', "bR'", 'U')
         self.myperms2['E3[UF>UL>bR.R]'] = ('U2', "R'", "bL'", "U'", "bR'", 'U', 'bR', 'bL', 'R', 'bR', 'U', "bR'", 'U2')
-        self.myperms2['E3[UL>bR.R>RU]'] = ('bR2', "U2'", "bR'", 'U', 'bR', 'U', "bR2'", "sR'", "R'", "U'", 'R', 'sR', "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', 'U')
-        self.myperms2['E3[UL>R.bR;UR>UL;bR.R>RU]'] = ("U'", "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', "U'", 'bR2', 'U', "bR'", "U'", "bR'", 'U2', 'F', 'R', 'bR', "R'", "F'", "bR'")
-        self.myperms2['E3[UL>RU;UR>R.bR;bR.R>UL]'] = ("R'", 'U', "F'", "U2'", 'F', 'U', 'R', 'bR', "bL'", "bR'", "R'", 'bR', 'bL', "bR'", 'R', "F'", 'U', 'bL', "U'", 'F', 'U', "bL'", "U'")
-        self.myperms2['E3[U.bL>R.bR;UF>U.bL;bR.R>FU]'] = ("R'", 'U', 'R', 'U', 'bR', 'bL', "U'", "bL2'", "bR'", 'F', 'R', 'bR', 'bL', "bR'", "R'", 'F2', 'L2', 'F', "L'", "F'", "L'", 'F2', 'R', 'U', 'L', "U'", "L'", "R'")
-        self.myperms2['E3[U.bL>UF>bR.R]'] = ('bR', "U'", "bR'", "U'", "R'", "F'", 'U', 'F2', 'R', "bL'", "bR'", "R'", "F'", 'R', 'bR', "bL2'", "L2'", "bL'", 'L', 'bL', 'L', "bL2'", "bR'", "U'", "L'", 'U', 'L', 'bR')
 
-        self.myperms2['E3A'] = ("R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'")
-        self.myperms2['E3B'] = ("U","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","U'")
-        self.myperms2['E3C'] = ("U'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","U")
-        self.myperms2['E3D'] = ("U2","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","U2'")
-        self.myperms2['E3E'] = ("U2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","U2")
-        self.myperms2['E3F'] = ("dR'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR")
-        self.myperms2['E3G'] = ("U","dR'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR","U'")
-        self.myperms2['E3H'] = ("U'","dR'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR","U")
-        self.myperms2['E3I'] = ("U2","dR'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR","U2'")
-        self.myperms2['E3J'] = ("U2'","dR'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR","U2")
-        self.myperms2['E3K'] = ("dR2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR2")
-        self.myperms2['E3L'] = ("U","dR2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR2","U'")
-        self.myperms2['E3M'] = ("U'","dR2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR2","U")
-        self.myperms2['E3N'] = ("U2","dR2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR2","U2'")
-        self.myperms2['E3O'] = ("U2'","dR2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR2","U2")
+        self.myperms2['E3[UF>UR>sR.bR]'] = ('bR2', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', "bR'")
+        self.myperms2['E3[RF>RU>LU]'] = ("R'", "U2'", "dR'", "R'", "F'", 'R', 'F', 'dR', 'U', 'F', 'R', "F'", "R'", 'U', 'R')
+        self.myperms2['E3[UF>UR>B.bL]'] = ("U'", 'bL2', 'R', 'U', 'bR', "U'", "bR'", "R'", "bL'", "bR'", "U'", 'bR', 'U', "bL'", 'U')
+        self.myperms2['E3[UL>UR>bR.R]'] = ("R2'", "U2'", "dR'", "R'", "F'", 'R', 'F', 'dR', 'U', 'F', 'R', "F'", "R'", 'U', 'R2')
+        self.myperms2['E3[L.sL>FU>RU]'] = ("U2'", 'L2', 'bR', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', "L'", 'U2')
+        self.myperms2['E3[UF>UR>sR.B]'] = ("sR'", 'bR2', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', "bR'", 'sR')
+        self.myperms2['E3[UF>UR>dR.sR]'] = ("U","dR'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR","U'")
+        self.myperms2['E3[B.sL>UF>UR]'] = ("U'", "B'", 'bL2', 'R', 'U', 'bR', "U'", "bR'", "R'", "bL'", "bR'", "U'", 'bR', 'U', "bL'", 'B', 'U')
+        self.myperms2['E3[UF>UR>dL.dR]'] = ('U2', "dL'", 'F2', 'bL', 'U', 'L', "U'", "L'", "bL'", "F'", "L'", "U'", 'L', 'U', "F'", 'dL', "U2'")
+        self.myperms2['E3[UF>UR>sL.dL]'] = ("U2'", "sL'", 'L2', 'bR', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', "L'", 'sL', 'U2')
+        self.myperms2['E3[D.sR>FU>RU]'] = ("sR2'", 'bR2', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', "bR'", 'sR2')
+        self.myperms2['E3[D.dR>FU>RU]'] = ("U","dR2'","R2","L","U","F","U'","F'","L'","R'","F'","U'","F","U","R'","dR2","U'")
+        self.myperms2['E3[DB>FU>RU]'] = ("U'", "B2'", 'bL2', 'R', 'U', 'bR', "U'", "bR'", "R'", "bL'", "bR'", "U'", 'bR', 'U', "bL'", 'B2', 'U')
+        self.myperms2['E3[D.dL>FU>RU]'] = ('U2', "dL2'", 'F2', 'bL', 'U', 'L', "U'", "L'", "bL'", "F'", "L'", "U'", 'L', 'U', "F'", 'dL2', "U2'")
+        self.myperms2['E3[D.sL>FU>RU]'] = ("U2'", "sL2'", 'L2', 'bR', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', "L'", 'sL2', 'U2')
+
+        self.myperms2['E3[UL>dR.F>UR]'] = ("F2'", 'L', 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F', 'U', 'R', 'F2')
+        self.myperms2['E3[UL>dL.L>UR]'] = ('U', "L2'", 'bL', 'U', 'L', "U'", "L'", "bL'", "F'", "L'", "U'", 'L', 'U', 'F', 'L2', "U'")
+        self.myperms2['E3[UL>sR.R>UR]'] = ("U'", "R2'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R2', 'U')
+        self.myperms2['E3[UL>sL.bL>UR]'] = ('U2', "bL2'", 'bR', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', 'L', 'bL2', "U2'")
+        self.myperms2['E3[B.bR>UR>UL]'] = ("U2'", "bR2'", 'R', 'U', 'bR', "U'", "bR'", "R'", "bL'", "bR'", "U'", 'bR', 'U', 'bL', 'bR2', 'U2')
+        self.myperms2['E3[UL>dR.dL>UR]'] = ('dR', "F2'", 'L', 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F', 'U', 'R', 'F2', "dR'")
+        self.myperms2['E3[UL>dL.sL>UR]'] = ('U', 'dL', "L2'", 'bL', 'U', 'L', "U'", "L'", "bL'", "F'", "L'", "U'", 'L', 'U', 'F', 'L2', "dL'", "U'")
+        self.myperms2['E3[UL>sR.dR>UR]'] = ("U'", 'sR', "R2'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R2', "sR'", 'U')
+        self.myperms2['E3[B.sL>RU>LU]'] = ('U2', 'sL', "bL2'", 'bR', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', 'L', 'bL2', "sL'", "U2'")
+        self.myperms2['E3[UL>B.sR>UR]'] = ("U2'", 'B', "bR2'", 'R', 'U', 'bR', "U'", "bR'", "R'", "bL'", "bR'", "U'", 'bR', 'U', 'bL', 'bR2', "B'", 'U2')
+        self.myperms2['E3[D.dR>RU>LU]'] = ('dR2', "F2'", 'L', 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F', 'U', 'R', 'F2', "dR2'")
+        self.myperms2['E3[D.dL>RU>LU]'] = ('U', 'dL2', "L2'", 'bL', 'U', 'L', "U'", "L'", "bL'", "F'", "L'", "U'", 'L', 'U', 'F', 'L2', "dL2'", "U'")
+        self.myperms2['E3[D.sR>RU>LU]'] = ("U'", 'sR2', "R2'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R2', "sR2'", 'U')
+        self.myperms2['E3[D.sL>RU>LU]'] = ('U2', 'sL2', "bL2'", 'bR', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', 'L', 'bL2', "sL2'", "U2'")
+        self.myperms2['E3[DB>RU>LU]'] = ("U2'", 'B2', "bR2'", 'R', 'U', 'bR', "U'", "bR'", "R'", "bL'", "bR'", "U'", 'bR', 'U', 'bL', 'bR2', "B2'", 'U2')
+
+        self.myperms2['E3[L.bL>FU>R.bR]'] = ("R'", 'L2', 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F', 'U', 'R2', "L'")
+        self.myperms2['E3[UF>sR.dR>UR]'] = ('R', "U'", 'sR2', 'R', 'bR', "R'", "bR'", "sR'", "U'", "bR'", "R'", 'bR', 'R', 'U2', "sR'", "R'")
+        self.myperms2['E3[UF>UR>sR.dR]'] = ('R', 'sR', "U2'", "R'", "bR'", 'R', 'bR', 'U', 'sR', 'bR', 'R', "bR'", "R'", "sR2'", 'U', "R'")
+        self.myperms2['E3[UF>bR.sR>RU]'] = ("R2'", 'F', "sR2'", "R'", "dR'", 'R', 'dR', 'sR', 'F', 'dR', 'R', "dR'", "R'", "F2'", 'sR', 'R2')
+        self.myperms2['E3[UF>RU>bR.sR]'] = ("R2'", "sR'", 'F2', 'R', 'dR', "R'", "dR'", "F'", "sR'", "dR'", "R'", 'dR', 'R', 'sR2', "F'", 'R2')
+        self.myperms2['E3[L.sL>R.bR>FU]'] = ('L2', "R2'", "U'", "F'", 'U', 'F', 'R', 'L', 'F', 'U', "F'", "U'", 'L2', 'R')
+        self.myperms2['E3[UF>dL.L>R.bR]'] = ('U2', "L2'", 'bR2', 'U', 'bL', "U'", "bL'", "bR'", "L'", "bL'", "U'", 'bL', 'U', "L2'", "bR'", "U2'")
+        self.myperms2['E3[L.sL>FU>R.sR]'] = ("R2'", "L2'", 'U', 'F', "U'", "F'", "L'", "R'", "F'", "U'", 'F', 'U', "R2'", "L2'")
+        self.myperms2['E3[D.sR>LU>RU]'] = ('R', 'sR2', 'U2', "R'", "bR'", 'R', 'bR', 'U', 'sR', 'bR', 'R', "bR'", "R'", 'sR2', 'U2', "R'")
+        self.myperms2['E3[UF>R.bR>dL.sL]'] = ('F2', "R2'", "dL2'", 'F', 'dR', "F'", "dR'", "dL'", "R'", "dR'", "F'", 'dR', 'F', "R2'", "dL2'", "F2'")
+        self.myperms2['E3[UF>dL.sL>R.bR]'] = ('F2', 'dL2', 'R2', "F'", "dR'", 'F', 'dR', 'R', 'dL', 'dR', 'F', "dR'", "F'", 'dL2', 'R2', "F2'")
+
+
+        self.myperms2['E3[UL>bR.R>RU]'] = ('bR2', "U2'", "bR'", 'U', 'bR', 'U', "bR2'", "sR'", "R'", "U'", 'R', 'sR', "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', 'U')
+        self.myperms2['E3[UL>R.bR>UR]'] = ("U'", "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', "U'", 'bR2', 'U', "bR'", "U'", "bR'", 'U2', 'F', 'R', 'bR', "R'", "F'", "bR'")
+        self.myperms2['E3[UL>RU>bR.R]'] = ("R'", 'U', "F'", "U2'", 'F', 'U', 'R', 'bR', "bL'", "bR'", "R'", 'bR', 'bL', "bR'", 'R', "F'", 'U', 'bL', "U'", 'F', 'U', "bL'", "U'")
+        self.myperms2['E3[U.bL>R.bR>UF]'] = ("U2'", 'bR', "U2'", "bR'", "U'", "R2'", 'U', 'L', "U'", 'R2', 'U', "L'", "U'", "bR'", 'R', 'bR', "bL'", "bR'", "R'", 'bR', 'bL')
+        self.myperms2['E3[U.bL>UF>bR.R]'] = ('bR', "U'", "bR'", "U'", "R'", "F'", 'U', 'F2', 'R', "bL'", "bR'", "R'", "F'", 'R', 'bR', "bL2'", "L2'", "bL'", 'L', 'bL', 'L', "bL2'", "bR'", "U'", "L'", 'U', 'L', 'bR')
+        self.myperms2['E3[UF>RU>B.sR]'] = ("sR'", 'bR2', 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', "bR'", 'sR', 'F2', "R2'", "F'", 'R', 'F', 'R', "F2'", "L'", "U'", "R'", 'U', 'R', 'L')
+        self.myperms2['E3[UL>RU>R.bR]'] = ('L', 'F', "U'", "R'", 'U', "F'", "L'", 'F', 'R', "F'", "bL'", "R'", 'bR', 'bL', "bR'", 'R', 'bR', "bL'", "bR'", 'bL')
+        self.myperms2['E3[B.sL>LU>RU]'] = ('U', 'L', "F'", "U'", "L'", 'U', 'L', 'F', 'bL', 'L', 'U', "L'", "U'", "bL'", "L'", 'sL2', 'L', 'bL', "L'", "bL'", "U'", "sL'", "bL'", "L'", 'bL', 'L', "sL'")
+        self.myperms2['E3[UL>sR.B>UR]'] = ("U'", "R'", 'F', 'U', 'R', "U'", "R'", "F'", "bR'", "R'", "U'", 'R', 'U', 'bR', 'R', "sR2'", "R'", "bR'", 'R', 'bR', 'U', 'sR', 'bR', 'R', "bR'", "R'", 'sR')
+
+
 
 
 

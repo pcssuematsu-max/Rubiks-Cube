@@ -39,6 +39,21 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
         self.assertEqual(edge_name, "E2[FL>LF;RF>FR]")
         self.assertEqual(corner_name, "C2[UFL>FLU;URF>FUR]")
 
+    def test_dotted_edge_orientation_cycle_uses_chain_notation(self):
+        component = EffectComponent(
+            group = "Edge",
+            part_code = "E",
+            piece_size = 2,
+            transfers = (
+                PieceTransfer("Edge", "E", 8, 0, "bR.R", "UF", "FU", "flip"),
+                PieceTransfer("Edge", "E", 0, 2, "UF", "U.bL", "U.bL"),
+                PieceTransfer("Edge", "E", 2, 8, "U.bL", "bR.R", "R.bR", "flip"),
+            ),
+            cycles = (("U.bL", "bR.R", "UF"),),
+        )
+
+        self.assertEqual(component.concise_name(), "E3[U.bL>R.bR>UF]")
+
     def test_mixed_corner_cycle_and_twists_are_not_collapsed_to_short_cycle(self):
         component = EffectComponent(
             group = "Corner",

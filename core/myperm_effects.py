@@ -170,7 +170,12 @@ class EffectComponent:
     def _reverse_edge_label(self, label):
         if "@" in label:
             base, suffix = label.split("@", 1)
-            return f"{base[::-1]}@{suffix}"
+            return f"{self._reverse_edge_base_label(base)}@{suffix}"
+        return self._reverse_edge_base_label(label)
+
+    def _reverse_edge_base_label(self, label):
+        if "." in label:
+            return ".".join(reversed(label.split(".")))
         return label[::-1]
 
     def _rotate_piece_label(self, label, shift):
