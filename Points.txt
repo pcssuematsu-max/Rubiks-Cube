@@ -1,3 +1,4 @@
+###Cube
 #Corners
 UFR:2 UFL:2 UBR:1 UBL:1 DFR:1 DFL:1 DBR:0.5 DBL:0.5
 
@@ -53,6 +54,22 @@ Others:5
 (bL,B):500 (bL,sL):500 (L,sL):500 (L,dL):500 (F,dL):500
 (dR,dL):250 (dL,sL):250 (sL,B):250 (B,sR):250 (sR,dR):250
 Others:100
+
+###Pyraminx
+パーツに名前をつけたい
+
+###MasterPyraminx
+パーツに名前をつけたい
+
+###Skewb
+パーツに名前をつけたい
+
+###FTO
+パーツに名前をつけたい
+
+###CTO
+パーツに名前をつけたい
+
 
 各mypermsに対して「myperms_point」を設定したい。
 そのポジションのパーツが移動した際に上記のポイントを加算していき、

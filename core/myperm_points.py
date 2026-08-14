@@ -396,9 +396,7 @@ def parse_myperm_points_text(text, puzzle = None):
             current_puzzle = line.lstrip("#").strip().lower()
             current_part = None
             continue
-        if target_puzzle is None and current_puzzle is not None:
-            continue
-        if target_puzzle is not None and current_puzzle != target_puzzle:
+        if not _point_line_applies_to_puzzle(current_puzzle, target_puzzle):
             continue
         if line.startswith("#"):
             section_name = line[1:].strip().rstrip(":")
@@ -429,7 +427,19 @@ def parse_myperm_points_text(text, puzzle = None):
 
 def load_myperm_points(path = "Points.txt", puzzle = None):
     """Load a point table from Points.txt."""
+    if puzzle is None:
+        puzzle = "cube"
     return parse_myperm_points_text(Path(path).read_text(encoding = "utf-8"), puzzle = puzzle)
+
+
+def _point_line_applies_to_puzzle(current_puzzle, target_puzzle):
+    if target_puzzle is None:
+        return current_puzzle is None
+    if current_puzzle == target_puzzle:
+        return True
+    if target_puzzle in {"cube", "rubiks", "rubiks_cube"} and current_puzzle is None:
+        return True
+    return False
 
 
 def _parse_point_value(value_text, line_number):

@@ -295,7 +295,7 @@ class Rubiks_3_AI:
         """Create the configured hidden activation for one trunk layer."""
         activation = self._normalized_activation_name()
         if activation == 'silu':
-            return SiLU(beta = 0.2)
+            return SiLU(beta = 0)
         if activation == 'relu':
             return ReLU()
         if activation == 'hard_sigmoid':
@@ -308,7 +308,7 @@ class Rubiks_3_AI:
         """Create policy/value hidden-head activation matching the configured activation."""
         activation = self._normalized_activation_name()
         if activation == 'silu':
-            return SiLU(beta = 0.2)
+            return SiLU(beta = 0)
         if activation == 'hard_sigmoid':
             return Hard_Sigmoid()
         if activation == 'sigmoid':
