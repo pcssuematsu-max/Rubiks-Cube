@@ -629,6 +629,74 @@ class MypermEffectAnalyzerTest(unittest.TestCase):
         self.assertNotEqual(tuple(moves), solve_state.last_simplified_lis)
         puzzle.reset()
 
+    def test_non_rubiks_center_positions_use_named_locations(self):
+        def positions(puzzle, group):
+            analyzer = MypermEffectAnalyzer(puzzle)
+            return [
+                analyzer._position_name(group, piece)
+                for piece in analyzer._groups[group]
+            ]
+
+        self.assertEqual(
+            positions(PyraminxCube(), "Center"),
+            [
+                "U@L", "U@R", "U@B",
+                "L@U", "L@B", "L@R",
+                "R@U", "R@L", "R@B",
+                "B@U", "B@R", "B@L",
+            ],
+        )
+        self.assertEqual(
+            positions(MasterPyraminxCube(), "Center"),
+            [
+                "U@L", "U@R", "U@C", "U@B",
+                "L@U", "L@B", "L@C", "L@R",
+                "R@U", "R@L", "R@C", "R@B",
+                "B@U", "B@R", "B@C", "B@L",
+            ],
+        )
+        self.assertEqual(
+            positions(SkewbCube(), "Center"),
+            ["U", "R", "F", "D", "L", "B"],
+        )
+        self.assertEqual(
+            positions(FtoCube(), "CenterA"),
+            [
+                "URF@F", "URF@U", "URF@R",
+                "ULB@B", "ULB@U", "ULB@L",
+                "DLF@F", "DLF@D", "DLF@L",
+                "DRB@B", "DRB@D", "DRB@R",
+            ],
+        )
+        self.assertEqual(
+            positions(FtoCube(), "CenterB"),
+            [
+                "UFL@F", "UFL@U", "UFL@L",
+                "UBR@B", "UBR@U", "UBR@R",
+                "DFR@F", "DFR@D", "DFR@R",
+                "DBL@B", "DBL@D", "DBL@L",
+            ],
+        )
+
+    def test_master_pyraminx_outer_edges_distinguish_same_edge_positions(self):
+        puzzle = MasterPyraminxCube()
+        analyzer = MypermEffectAnalyzer(puzzle)
+
+        self.assertEqual(
+            [
+                analyzer._position_name("Edge", piece)
+                for piece in analyzer._groups["Edge"]
+            ],
+            [
+                "RB@U", "RB@L",
+                "LB@U", "LB@R",
+                "LR@U", "LR@B",
+                "UB@L", "UB@R",
+                "UR@L", "UR@B",
+                "UL@R", "UL@B",
+            ],
+        )
+
     def test_supported_puzzles_can_analyze_a_registered_myperm(self):
         puzzle_factories = (
             MegaminxCube,

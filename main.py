@@ -106,23 +106,21 @@ def _default_initial_scramble_groups(size,puzzle_type):
     if puzzle_type == "megaminx":
         return (
             [
-                ("F",),
-                ("F2",),
-                ("B",),
-                ("B2",),
-                ("U",),
-                ("U2",),
-                ("D",),
-                ("D2",),
+                ("R2'", "U'", 'R2', 'F2', "R2'", "F2'", "U'", 'F2', 'R2', "F2'", "R2'", 'U2', 'R2', "U'"),
+                ("U2'", "F'", 'U2', 'R2', "U2'", "R2'", "F'", 'R2', 'U2', "R2'", "U2'", 'F2', 'U2', "F'"),
+                ('R2', "U2'", "R2'", "F2'", "U'", 'F2', "U'", 'R2', "U'", "R2'", "F2'", "U2'", 'F2', "U2'"),
+                ('U2', "F2'", "U2'", "R2'", "F'", 'R2', "F'", 'U2', "F'", "U2'", "R2'", "F2'", 'R2', "F2'"),
             ],
             [
-                ("U2'", 'bR2', "U2'", "bR'", 'U', 'bR', 'U', "bR2'", "sR'", "R'", "U'", 'R', "U2'", 'sR'),
-                ("B'", "bR2'", 'U', 'F', "U'", 'bR2', "B'", 'bR2', 'U', "F'", "U'", "bR2'", 'B2'),
+                ("R'", "L'", "U'", 'R', 'U2', "L'", 'U', 'L', "U2'", 'L'),
+                ("L2'", 'U', 'L2', 'U', "L2'", "U'", 'L2', "U'"),
+                ("U'", "F2'", 'U', 'F2', 'U', "F2'", "U'", 'F2'),
+                ('U2', "bL2'", "sL2'", "bR2'", 'bL', 'B', "bL'", "B'", "bR'", "sL'", "B'", "bL'", 'B', 'bL', "sL2'", "bR2'", 'bL2', "U2'"),
+                ("F'", "U'", "F'", 'U', 'F', "R'", 'F', 'R'),
             ],
             [
             ],
-            [
-                
+            [                
             ],
             [],
             [],
@@ -312,7 +310,7 @@ def build_default_frame_config():
     """現在の既定実験設定を FrameConfig として返す。"""
     ai_search_modes = [
         'search3'
-        if ai_index % 10 in [2,3,4,5,6,7]
+        if ai_index in [2,3,4,5,6,7,10,11,18,19]
         else 'search2'
         for ai_index in range(20)
     ]
@@ -321,7 +319,7 @@ def build_default_frame_config():
     is_search2_ai = [mode.startswith('search2') for mode in ai_search_modes]
     lrs = [
         2.0e-6,2.0e-6,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-6,2.0e-6,
-        5.0e-6,5.0e-6,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-5,2.0e-5,5.0e-6,5.0e-6,
+        2.0e-5,2.0e-5,5.0e-6,5.0e-6,5.0e-6,5.0e-6,5.0e-6,5.0e-6,2.0e-5,2.0e-5,
     ]
     wdlrs = [
         1.0e-4 if original_transformer_attention[ai_index] else (1.0e-7 if is_search2_ai[ai_index] else 1.0e-5)

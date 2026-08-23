@@ -34,6 +34,7 @@ class PyraminxCube:
     def __init__(self, S = "", size = 3, F2L = False, OLL = False, Centers = False, Edges = False, Cross = False):
         self.size = 3 if size in (None, 0) else int(size)
         self.order = self.size
+        self.myperm_point_puzzle = "masterpyraminx" if self.order >= 4 else "pyraminx"
         self.F2L = F2L
         self.OLL = OLL
         self.Centers = Centers
@@ -261,61 +262,82 @@ class PyraminxCube:
 
     def _register_myperms2(self):
         if self.order < 4:
-            self._add_myperm2("Pyraminx-Edge3Cycle-SexyA", ("R", "U", "R'", "U'"))
-            self._add_myperm2("Pyraminx-Edge3Cycle-SexyB", ("R'", "U", "R", "U'"))
-            self._add_myperm2("Pyraminx-Edge2Flip-A", ("R'","L","R","L'","U","L'","U'","L"))
-            self._add_myperm2("Pyraminx-Edge2Flip-B", ('R', 'U', "R'", 'U', "L'", "U'", 'L', "U'"))
-            self._add_myperm2("Pyraminx-Edge3Cycle-UpperA", ("R","U'","R'","U'","R","U'","R'"))
-            self._add_myperm2("Pyraminx-Edge3Cycle-UpperB", ('L', 'R', 'U', "R'", "U'", "L'"))
-            self._add_myperm2("Pyraminx-Edge3Cycle-Down", ("L'", 'U', 'L', 'U', 'R', 'U', "R'"))
-            self._add_myperm2("Pyraminx-Edge3Cycle-SkewA", ('R', "L'", 'U', 'L', "U'", "R'"))
-            self._add_myperm2("Pyraminx-Edge3Cycle-SkewB", ("U'", 'R', "U'", "R'", "U'"))
-
-            self._add_myperm2("Pyraminx-Center3Cycle-A", ('U', 'R','U', "R'", 'U', 'R', 'U', "R'","u'"))
+            self._add_myperm2("E3[RB>LU>UR]", ("B'", "L'", 'B', 'L'), add_inverse = False)
+            self._add_myperm2("E3[RB>UR>LU]", ("L'", "B'", 'L', 'B'), add_inverse = False)
+            self._add_myperm2("E3[UB>RU>LU]", ('R', "L'", "R'", 'L'), add_inverse = False)
+            self._add_myperm2("E3[UB>LU>RU]", ("L'", 'R', 'L', "R'"), add_inverse = False)
+            self._add_myperm2("E2[UL>LU;UR>RU]~v01", ('R', "L'", "R'", 'L', "B'", 'L', 'B', "L'"), add_inverse = False)
+            self._add_myperm2("E2[UL>LU;UR>RU]~v02", ('L', "B'", "L'", 'B', "L'", 'R', 'L', "R'"), add_inverse = False)
+            self._add_myperm2("E2[LB>BL;UR>RU]~v01", ("B'", "U'", 'B', "U'", 'L', 'U', "L'", 'U'), add_inverse = False)
+            self._add_myperm2("E2[LB>BL;UR>RU]~v02", ("U'", 'L', "U'", "L'", 'U', "B'", 'U', 'B'), add_inverse = False)
+            self._add_myperm2("E3[LR>UL>RU]", ("L'", 'B', 'L', 'B', "L'", 'B', 'L'), add_inverse = False)
+            self._add_myperm2("E3[LR>RU>UL]", ("L'", "B'", 'L', "B'", "L'", "B'", 'L'), add_inverse = False)
+            self._add_myperm2("E3[LR>UR>LU]", ("U'", "L'", "B'", 'L', 'B', 'U'), add_inverse = False)
+            self._add_myperm2("E3[LR>LU>UR]", ("U'", "B'", "L'", 'B', 'L', 'U'), add_inverse = False)
+            self._add_myperm2("E3[UB>UL>UR]", ('R', "L'", "R'", "L'", "B'", "L'", 'B'), add_inverse = False)
+            self._add_myperm2("E3[UB>UR>UL]", ("B'", 'L', 'B', 'L', 'R', 'L', "R'"), add_inverse = False)
+            self._add_myperm2("E3[RB>RU>LU]", ("B'", 'L', "U'", "L'", 'U', 'B'), add_inverse = False)
+            self._add_myperm2("E3[RB>LU>RU]", ("B'", "U'", 'L', 'U', "L'", 'B'), add_inverse = False)
+            self._add_myperm2("E3[RB>UL>UR]", ("L'", 'R', "L'", "R'", "L'"), add_inverse = False)
+            self._add_myperm2("E3[RB>UR>UL]", ('L', 'R', 'L', "R'", 'L'), add_inverse = False)
+            self._add_myperm2("Ctr3[B@U>R@U>L@U]", ('U', 'R', 'U', "R'", 'U', 'R', 'U', "R'", "u'"), add_inverse = False)
+            self._add_myperm2("Ctr3[B@U>L@U>R@U]", ('u', 'R', "U'", "R'", "U'", 'R', "U'", "R'", "U'"), add_inverse = False)
 
         if self.order >= 4:
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-SexyA", ("3R", "U", "3R'", "U'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-SexyB", ("3R'", "U", "3R", "U'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-SexyC", ("R", "3U", "R'", "3U'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-SexyD", ("R'", "3U", "R", "3U'"))
-
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseA", ("3R'","L","3R","L'","3U","L'","3U'","L"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseB", ("R'", 'U', "3L'", "U'", '3L', 'R'))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseC", ('L', "3B'", "R'", "3B'", 'R', "3B'", "L'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseD", ('R', '3U', "R'", '3U', "L'", "3U'", 'L', "3U'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseE", ("U'", "3R'", "U'", '3R', "U'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseF", ("3U'", "R'", "3U'", 'R', "3U'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseG", ("L'", "R'", "3U'", 'R', '3U', 'L'))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseH", ('3L', 'U', "3B'", "U'", '3B', "3L'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseI", ('3B', 'L', '3U', "L'", "3U'", "3B'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-CaseJ", ("3L'", '3B', "R'", '3B', 'R', '3B', '3L'))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-UpperA", ("3R","U'","3R'","U'","3R","U'","3R'"))
-            self._add_myperm2("MasterPyraminx-OuterEdge3Cycle-UpperB", ("R","3U'","R'","3U'","R","3U'","R'"))
-
-
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseA", ('3R', "3L'", "L'", '3U', "3L'", 'L', "3U'", 'U', '3L', "L'", '3U', 'U', "3L'", 'L', "3U'", 'U', "3L'", "3R'"))
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseB", ("B'", "3R'", '3B', "3R'", '3B', 'R', '3B', "3R'", '3B', "3R'"))
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseC", ('3B', "3L'", '3B', 'L', '3B', "3L'", '3B', "3L'", "B'", "3L'"))
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseD", ('3L', '3U', 'L', "3L'", '3U', "L'", '3L', '3U', '3L', "3U'", "L'", '3L', '3U', 'L', 'U', "3L'", "U'", '3L'))
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseE", ("3R'", "3B'", "3R'", 'R', '3B', "3R'", "B'", "3R'", 'U', '3B', "U'", '3B', 'U', '3B', "U'", '3B'))
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseF", ("3L'", '3R', "3L'", "R'", "3L'", '3R', "3L'", '3R', 'L', '3R', "3U'", "B'", "3U'", '3B', "3U'", '3B', 'U', '3B', "3U'", '3B'))
-            self._add_myperm2("MasterPyraminx-MidEdge3Cycle-CaseG", ("3R'", '3L', 'U', '3L', "3B'", "R'", "3U'", "3L'", "3R'", "3B'", 'U', "3L'", "3B'", '3U', '3B', '3U', "U'", "3B'", '3U', "3B'", 'U', '3B', "U'"))
-
-
-            self._add_myperm2("MasterPyraminx-MidEdge2Flip-A", ("3R'","3B","L","3B","3U'","R'","3L'","3B'","3R'","L","3U'","3B'","3L'","U'"))
-            self._add_myperm2("MasterPyraminx-MidEdge2Flip-B", ("3R","3B","L","3B","3U'","R'","3L'","3B'","3R'","L","3U'","3B'","3L'","U'","3R"))
-
-
-
-
-            self._add_myperm2("MasterPyraminx-Center3Cycle-OuterA", ('U', '3R','U', "3R'", 'U', '3R', 'U', "3R'","u'"))
-            self._add_myperm2("MasterPyraminx-Center3Cycle-InnerA", ("R","3L","3R","R'","3L'","3R","3L","3R","R'","3L'","3R"))
-
-
-
-
-
-
+            self._add_myperm2("OE3[RB@L>LU@R;UL@R>RU@L;UR@L>RB@L]", ("3B'", "L'", '3B', 'L'), add_inverse = False)
+            self._add_myperm2("OE3[RB@L>UR@L;UL@R>BR@L;UR@L>LU@R]", ("L'", "3B'", 'L', '3B'), add_inverse = False)
+            self._add_myperm2("OE3[UB@L>RU@L;UL@B>BU@L;UR@L>UL@B]", ('3R', "L'", "3R'", 'L'), add_inverse = False)
+            self._add_myperm2("OE3[UB@L>LU@B;UL@B>UR@L;UR@L>BU@L]", ("L'", '3R', 'L', "3R'"), add_inverse = False)
+            self._add_myperm2("OE3[RB@U>LU@B;UL@B>RU@B;UR@B>RB@U]", ("B'", "3L'", 'B', '3L'), add_inverse = False)
+            self._add_myperm2("OE3[RB@U>UR@B;UL@B>BR@U;UR@B>LU@B]", ("3L'", "B'", '3L', 'B'), add_inverse = False)
+            self._add_myperm2("OE3[UB@R>RU@B;UL@R>BU@R;UR@B>UL@R]", ('R', "3L'", "R'", '3L'), add_inverse = False)
+            self._add_myperm2("OE3[UB@R>LU@R;UL@R>UR@B;UR@B>BU@R]", ("3L'", 'R', '3L', "R'"), add_inverse = False)
+            self._add_myperm2("OE3[UL@B>LU@R;UL@R>RU@L;UR@L>UL@B]", ('3R', "L'", "3R'", 'L', "3B'", 'L', '3B', "L'"), add_inverse = False)
+            self._add_myperm2("OE3[UL@B>UR@L;UL@R>LU@B;UR@L>LU@R]", ('L', "3B'", "L'", '3B', "L'", '3R', 'L', "3R'"), add_inverse = False)
+            self._add_myperm2("OE3[UL@B>RU@B;UL@R>LU@B;UR@B>UL@R]", ('R', "B'", '3L', 'B', "3L'", "R'"), add_inverse = False)
+            self._add_myperm2("OE3[UL@B>LU@R;UL@R>UR@B;UR@B>LU@B]", ('R', '3L', "B'", "3L'", 'B', "R'"), add_inverse = False)
+            self._add_myperm2("OE3[LB@U>UR@L;UR@B>BL@U;UR@L>RU@B]", ("L'", '3R', 'B', '3R', "B'", '3R', 'L'), add_inverse = False)
+            self._add_myperm2("OE3[LB@U>RU@B;UR@B>RU@L;UR@L>LB@U]", ("L'", "3R'", 'B', "3R'", "B'", "3R'", 'L'), add_inverse = False)
+            self._add_myperm2("OE3[LB@R>UR@B;UR@B>RU@L;UR@L>BL@R]", ("B'", "3U'", 'B', "3U'", 'L', '3U', "L'", '3U'), add_inverse = False)
+            self._add_myperm2("OE3[LB@R>RU@L;UR@B>LB@R;UR@L>RU@B]", ("3U'", 'L', "3U'", "L'", '3U', "B'", '3U', 'B'), add_inverse = False)
+            self._add_myperm2("OE3[RB@L>UR@L>UL@B]", ('L', '3R', 'L', "3R'", 'L'), add_inverse = False)
+            self._add_myperm2("OE3[RB@L>UL@B>UR@L]", ("L'", '3R', "L'", "3R'", "L'"), add_inverse = False)
+            self._add_myperm2("OE3[RB@U>UR@B>UL@R]", ('3L', 'R', '3L', "R'", '3L'), add_inverse = False)
+            self._add_myperm2("OE3[RB@U>UL@R>UR@B]", ("3L'", 'R', "3L'", "R'", "3L'"), add_inverse = False)
+            self._add_myperm2("OE3[LR@B>UR@L>UL@B]", ('L', 'B', '3U', "B'", "3U'", "L'"), add_inverse = False)
+            self._add_myperm2("OE3[LR@B>UL@B>UR@L]", ('L', '3U', 'B', "3U'", "B'", "L'"), add_inverse = False)
+            self._add_myperm2("OE3[LB@U>RU@B;UL@R>BL@U;UR@B>UL@R]", ('3B', 'U', "3R'", "U'", '3R', "3B'"), add_inverse = False)
+            self._add_myperm2("OE3[LB@U>LU@R;UL@R>UR@B;UR@B>BL@U]", ('3B', "3R'", 'U', '3R', "U'", "3B'"), add_inverse = False)
+            self._add_myperm2("OE3[LR@U>RU@L;UL@B>RL@U;UR@L>UL@B]", ("3R'", "U'", "3B'", 'U', '3B', '3R'), add_inverse = False)
+            self._add_myperm2("OE3[LR@U>LU@B;UL@B>UR@L;UR@L>RL@U]", ("3R'", "3B'", "U'", '3B', 'U', '3R'), add_inverse = False)
+            self._add_myperm2("OE3[UB@R>UR@L>UL@B]", ("3R'", '3B', "U'", '3B', 'U', '3B', '3R'), add_inverse = False)
+            self._add_myperm2("OE3[UB@R>UL@B>UR@L]", ("3R'", "3B'", "U'", "3B'", 'U', "3B'", '3R'), add_inverse = False)
+            self._add_myperm2("OE3[LR@B>UL@B;UL@B>RU@B;UR@B>RL@B]", ("3L'", 'B', '3L', 'B', "3L'", 'B', '3L'), add_inverse = False)
+            self._add_myperm2("OE3[LR@B>RU@B;UL@B>LR@B;UR@B>LU@B]", ("3L'", "B'", '3L', "B'", "3L'", "B'", '3L'), add_inverse = False)
+            self._add_myperm2("OE3[LR@U>UL@R;UL@R>RU@L;UR@L>RL@U]", ("L'", '3B', 'L', '3B', "L'", '3B', 'L'), add_inverse = False)
+            self._add_myperm2("OE3[LR@U>RU@L;UL@R>LR@U;UR@L>LU@R]", ("L'", "3B'", 'L', "3B'", "L'", "3B'", 'L'), add_inverse = False)
+            self._add_myperm2("ME3[UB>UR>UL]", ('3R', "3L'", "L'", '3U', "3L'", 'L', "3U'", 'U', '3L', "L'", '3U', 'U', "3L'", 'L', "3U'", 'U', "3L'", "3R'"), add_inverse = False)
+            self._add_myperm2("ME3[UB>UL>UR]", ('3R', '3L', "U'", '3U', "L'", '3L', "U'", "3U'", 'L', "3L'", "U'", '3U', "L'", '3L', "3U'", 'L', '3L', "3R'"), add_inverse = False)
+            self._add_myperm2("ME3[LR>RU>UL]", ("B'", "3R'", '3B', "3R'", '3B', 'R', '3B', "3R'", '3B', "3R'"), add_inverse = False)
+            self._add_myperm2("ME3[LR>UL>RU]", ('3R', "3B'", '3R', "3B'", "R'", "3B'", '3R', "3B'", '3R', 'B'), add_inverse = False)
+            self._add_myperm2("ME3[LB>UR>UL]", ("3R'", '3L', "3R'", "L'", "3R'", '3L', "3R'", '3L', 'R', '3L'), add_inverse = False)
+            self._add_myperm2("ME3[LB>UL>UR]", ("3L'", "R'", "3L'", '3R', "3L'", '3R', 'L', '3R', "3L'", '3R'), add_inverse = False)
+            self._add_myperm2("ME3[UB>RU>LU]", ("3R'", "3L'", "R'", '3R', "3L'", 'R', "3R'", "3L'", "3R'", '3L', 'R', "3R'", "3L'", "R'", "L'", '3R', 'L', "3R'"), add_inverse = False)
+            self._add_myperm2("ME3[UB>LU>RU]", ('3R', "L'", "3R'", 'L', 'R', '3L', '3R', "R'", "3L'", '3R', '3L', '3R', "R'", '3L', "3R'", 'R', '3L', '3R'), add_inverse = False)
+            self._add_myperm2("ME3[LB>RU>UL]", ("3R'", "3B'", "3R'", 'R', '3B', "3R'", "B'", "3R'", 'U', '3B', "U'", '3B', 'U', '3B', "U'", '3B'), add_inverse = False)
+            self._add_myperm2("ME3[LB>UL>RU]", ("3B'", 'U', "3B'", "U'", "3B'", 'U', "3B'", "U'", '3R', 'B', '3R', "3B'", "R'", '3R', '3B', '3R'), add_inverse = False)
+            self._add_myperm2("ME3[RB>LU>RU]", ("3U'", '3B', "3U'", "B'", "3U'", '3B', "3U'", '3B', 'U', '3B', "3L'", "R'", "3L'", '3R', "3L'", '3R', 'L', '3R', "3L'", '3R'), add_inverse = False)
+            self._add_myperm2("ME3[RB>RU>LU]", ("3R'", '3L', "3R'", "L'", "3R'", '3L', "3R'", '3L', 'R', '3L', "3B'", "U'", "3B'", '3U', "3B'", '3U', 'B', '3U', "3B'", '3U'), add_inverse = False)
+            self._add_myperm2("ME3[LR>LU>RU]", ("3R'", '3L', 'U', '3L', "3B'", "R'", "3U'", "3L'", "3R'", "3B'", 'U', "3L'", "3B'", '3U', '3B', '3U', "U'", "3B'", '3U', "3B'", 'U', '3B', "U'"), add_inverse = False)
+            self._add_myperm2("ME3[LR>RU>LU]", ('U', "3B'", "U'", '3B', "3U'", '3B', 'U', "3U'", "3B'", "3U'", '3B', '3L', "U'", '3B', '3R', '3L', '3U', 'R', '3B', "3L'", "U'", "3L'", '3R'), add_inverse = False)
+            self._add_myperm2("ME2[UL>LU;UR>RU]~v01", ('3R', "3U'", "L'", "3U'", '3B', 'R', '3L', '3U', '3R', "L'", '3B', '3U', '3L', 'B'), add_inverse = False)
+            self._add_myperm2("ME2[UL>LU;UR>RU]~v02", ("B'", "3L'", "3U'", "3B'", 'L', "3R'", "3U'", "3L'", "R'", "3B'", '3U', 'L', '3U', "3R'"), add_inverse = False)
+            self._add_myperm2("ME2[RB>BR;UL>LU]~v01", ('3R', '3B', 'L', '3B', "3U'", "R'", "3L'", "3B'", "3R'", 'L', "3U'", "3B'", "3L'", "U'", '3R'), add_inverse = False)
+            self._add_myperm2("ME2[RB>BR;UL>LU]~v02", ("3R'", 'U', '3L', '3B', '3U', "L'", '3R', '3B', '3L', 'R', '3U', "3B'", "L'", "3B'", "3R'"), add_inverse = False)
+            self._add_myperm2("Ctr3[B@U>R@U>L@U]", ('U', '3R', 'U', "3R'", 'U', '3R', 'U', "3R'", "u'"), add_inverse = False)
+            self._add_myperm2("Ctr3[B@U>L@U>R@U]", ('u', '3R', "U'", "3R'", "U'", '3R', "U'", "3R'", "U'"), add_inverse = False)
+            self._add_myperm2("Ctr3[B@C>L@C>R@C]", ("R'", "3U'", "3R'", 'R', '3U', "3R'", "3U'", "3R'", 'R', '3U', "3R'"), add_inverse = False)
+            self._add_myperm2("Ctr3[B@C>R@C>L@C]", ('3R', "3U'", "R'", '3R', '3U', '3R', "3U'", "R'", '3R', '3U', 'R'), add_inverse = False)
 
     def _add_myperm2(self, name, moves, add_inverse = True):
         name = normalize_myperm_name(name)

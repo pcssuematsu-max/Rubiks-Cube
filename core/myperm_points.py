@@ -16,6 +16,9 @@ SECTION_ALIASES = {
     "Corner":"C",
     "Edges":"E",
     "Edge":"E",
+    "OuterEdge":"OE",
+    "OuterEdges":"OE",
+    "OE":"OE",
     "MidEdge":"ME",
     "Wing":"W",
     "XCenter":"CtrX",
@@ -42,6 +45,8 @@ class MypermPointTable:
             return self._corner_point(canonical_position)
         if canonical_part == "E":
             return self._edge_point(canonical_position)
+        if canonical_part == "OE":
+            return self._outer_edge_point(canonical_position)
         if canonical_part == "ME":
             return self._mid_edge_point(canonical_position)
         if canonical_part == "W":
@@ -92,6 +97,22 @@ class MypermPointTable:
 
     def _edge_point(self, position):
         return self._lookup_first("E", self._edge_position_aliases(position))
+
+    def _outer_edge_point(self, position):
+        return self._lookup_first("OE", self._outer_edge_position_aliases(position))
+
+    def _outer_edge_position_aliases(self, position):
+        position = str(position)
+        if "@" not in position:
+            return self._edge_position_aliases(position)
+        edge, suffix = position.split("@", 1)
+        faces = self._position_faces(edge)
+        if len(faces) != 2:
+            return (position,)
+        return (
+            f"{self._join_faces(faces)}@{suffix}",
+            f"{self._join_faces(tuple(reversed(faces)))}@{suffix}",
+        )
 
     def _mid_edge_point(self, position):
         position = self._strip_edge_axis(position)

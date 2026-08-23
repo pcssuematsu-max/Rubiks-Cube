@@ -23,9 +23,9 @@ class MegaminxStateViewer(Tk.Canvas):
         self.PM = [1,-1,-1,-1,-1,-1,1,1,1,1,1,-1]
         self.color = {'U':"#FFFFFF",
                       'F':"#7F0000",
-                      'L':"#007F00",
+                      'L':"#005F2F",
                       'P':"#3F007F",
-                      'Q':"#BFBF00",
+                      'Q':"#DFDF00",
                       'R':"#0000BF",
                       'B':"#FF7F00",
                       'X':"#007FFF",

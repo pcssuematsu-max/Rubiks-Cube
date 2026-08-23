@@ -725,11 +725,74 @@ class MypermEffectAnalyzer:
                 common &= set(face)
             if common:
                 return "".join(face for face in "UDFBLR" if face in common)
+        if group == "Edge" and self._is_master_pyraminx():
+            return self._master_pyraminx_outer_edge_position_name(piece, faces)
         if len(piece) == 1:
+            center_name = self._single_sticker_center_position_name(group, int(piece[0]), faces[0])
+            if center_name is not None:
+                return center_name
             local_index = int(piece[0] % getattr(self.cube, "face_sticker_count", self.cube.surface_num))
             return f"{faces[0]}{local_index}"
         separator = "" if all(len(face) == 1 for face in faces) else "."
         return separator.join(faces)
+
+    def _single_sticker_center_position_name(self, group, sticker_index, face):
+        if not group.startswith("Center"):
+            return None
+        module_name = self.cube.__class__.__module__
+        if module_name == "skewb.cube":
+            return face
+        if module_name == "pyraminx.cube":
+            return self._pyraminx_center_position_name(sticker_index, face)
+        if module_name == "fto.cube":
+            return self._fto_center_position_name(sticker_index, face)
+        return None
+
+    def _pyraminx_center_position_name(self, sticker_index, face):
+        sticker = self.cube.stickers[sticker_index]
+        bary = sticker.get("bary", {})
+        vertices = tuple(getattr(self.cube, "face_vertices", {}).get(face, ()))
+        if not vertices:
+            return face
+        values = [(vertex, float(bary.get(vertex, 0.0))) for vertex in vertices]
+        values.sort(key = lambda row: row[1], reverse = True)
+        if len(values) >= 2 and abs(values[0][1] - values[1][1]) < 1.0e-8:
+            return f"{face}@C"
+        return f"{face}@{values[0][0]}"
+
+    def _master_pyraminx_outer_edge_position_name(self, piece, faces):
+        base = "".join(faces)
+        remaining_vertices = tuple(face for face in getattr(self.cube, "faces", ()) if face not in faces)
+        if len(remaining_vertices) != 2:
+            return base
+        scores = []
+        for vertex in remaining_vertices:
+            score = sum(
+                float(self.cube.stickers[index].get("bary", {}).get(vertex, 0.0))
+                for index in piece
+            )
+            scores.append((vertex, score))
+        scores.sort(key = lambda row:row[1], reverse = True)
+        if abs(scores[0][1] - scores[1][1]) < 1.0e-8:
+            return base
+        return f"{base}@{scores[0][0]}"
+
+    def _fto_center_position_name(self, sticker_index, face):
+        sticker = self.cube.stickers[sticker_index]
+        center = sticker.get("center")
+        if center is None:
+            return face
+        axis_index = max(range(len(center)), key = lambda index:abs(float(center[index])))
+        sign = 1 if float(center[axis_index]) > 0 else -1
+        axis_label = {
+            (0, 1):"R",
+            (0, -1):"L",
+            (1, 1):"U",
+            (1, -1):"D",
+            (2, 1):"F",
+            (2, -1):"B",
+        }[(axis_index, sign)]
+        return f"{face}@{axis_label}"
 
     def _rubiks_position_name(self, group, piece):
         faces = tuple(self.cube._move_face_label(index) for index in piece)
@@ -755,6 +818,8 @@ class MypermEffectAnalyzer:
         oriented_name = separator.join(oriented_faces)
         if self._is_rubiks_cube() and group == "Edge":
             return f"{oriented_name}@M"
+        if part_code == "OE" and "@" in destination:
+            return f"{oriented_name}@{destination.split('@', 1)[1]}"
         return oriented_name
 
     def _sticker_face(self, index):
@@ -769,6 +834,12 @@ class MypermEffectAnalyzer:
 
     def _is_rubiks_cube(self):
         return self.cube.__class__.__module__ == "cube.rubiks_cube"
+
+    def _is_master_pyraminx(self):
+        return (
+            self.cube.__class__.__module__ == "pyraminx.cube"
+            and getattr(self.cube, "order", 3) >= 4
+        )
 
     def _is_octahedral_puzzle(self):
         return self.cube.__class__.__module__ in {"fto.cube", "cto.cube"}

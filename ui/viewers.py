@@ -173,8 +173,8 @@ class StateViewer(Tk.Canvas):
         return self.inside_size
 
     def _init_color_maps(self):
-        self.color = {'R':'#7F0000','W':'#BFBFBF','B':'#0000BF','G':'#007F00','Y':'#BFBF00','O':'#FF7F00','':'#7F7F7F','X':'#7F7F7F'}
-        self.bd_color = {'R':'#5F0000','W':'#9F9F9F','B':'#00009F','G':'#005F00','Y':'#9F9F00','O':'#BF5F00','':'#5F5F5F','X':'#5F5F5F'}
+        self.color = {'R':'#7F0000','W':'#BFBFBF','B':'#0000BF','G':'#007F3F','Y':'#DFDF00','O':'#FF7F00','':'#7F7F7F','X':'#7F7F7F'}
+        self.bd_color = {'R':'#5F0000','W':'#9F9F9F','B':'#00009F','G':'#005F2F','Y':'#BFBF00','O':'#BF5F00','':'#5F5F5F','X':'#5F5F5F'}
 
     def _init_surface_positions(self):
         self.C = np.zeros(6 * self.surface_num,dtype = 'i')
@@ -453,15 +453,15 @@ Move_viewer = MoveViewer
 Prob_viewer = ProbViewer
 
 
-Red = '#BF0000'
+Red = '#7F0000'
 Orange = '#FF7F00'
-Yellow = '#BFBF00'
+Yellow = '#DFDF00'
 Lime = '#7FFF00'
-Green = '#00BF00'
+Green = '#005F2F'
 Aqua = '#007FFF'
-Blue = '#0000FF'
-Purple = '#5F00BF'
-Magenta = '#FF007F'
+Blue = '#0000BF'
+Purple = '#3F007F'
+Magenta = '#BF005F'
 Silver = '#7F7F7F'
 LightSilver = '#BFBFBF'
 White = '#FFFFFF'

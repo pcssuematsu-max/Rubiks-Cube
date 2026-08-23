@@ -83,7 +83,10 @@ CtrPlus12p[3x4]+ME5[DF>FU>FR>LF>BL]
 - Skewb/Pyraminx/Megaminx: 接しているface名
 - FTO/CTO Corner: `U`, `D`, `F`, `B`, `L`, `R`
 - FTO/CTO Edge: `UF`, `DL` など
-- FTO Center: `URF6` のようにface名とface内index
+- Pyraminx/MasterPyraminx Center: `U@L`, `U@C` のように面名と寄っている頂点。`@C` は中央寄り
+- MasterPyraminx OuterEdge: `UL@R`, `UL@B` のように辺名と寄っている頂点。同じ辺上の2つを区別する
+- Skewb Center: `U`, `R` のように面名
+- FTO Center: `URF@F` のようにFTO face名と寄っている頂点
 
 Rubik's Cubeで同じ辺のMidEdgeと全Wingが同じ辺へ移動し、向きも一致する場合は、個別の `E` と `W` を `EAll` に統合する。
 例えば7x7 SuperFlipはMidEdgeとWingを分離せず、`EAll12[XY>YX]` とする。

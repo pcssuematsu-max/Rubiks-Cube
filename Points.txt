@@ -56,19 +56,91 @@ Others:5
 Others:100
 
 ###Pyraminx
-パーツに名前をつけたい
+#Corners
+ULR:1 ULB:2 URB:2 LRB:4
+Others:0
+
+#Edges
+UL:20 UR:20 UB:16 LR:10 LB:8 RB:8
+Others:0
+
+#Ctr
+U@L:2 U@R:2 U@B:1
+L@U:5 L@B:1 L@R:2
+R@U:5 R@L:2 R@B:1
+B@U:5 B@R:2 B@L:2
+Others:0
 
 ###MasterPyraminx
-パーツに名前をつけたい
+#Corners
+ULR:1 ULB:2 URB:2 LRB:4
+Others:0
+
+#OuterEdge
+UL@R:20 UL@B:20 UR@L:20 UR@B:20 UB@L:16 UB@R:16
+LR@U:10 LR@B:10 LB@U:8 LB@R:8 RB@U:8 RB@L:8
+Others:0
+
+#MidEdge
+UL:200 UR:200 UB:160 LR:100 LB:80 RB:80
+Others:0
+
+#Ctr
+U@L:2 U@R:2 U@C:100 U@B:1
+L@U:5 L@B:1 L@C:200 L@R:2
+R@U:5 R@L:2 R@C:200 R@B:1
+B@U:5 B@R:2 B@C:500 B@L:2
+Others:0
 
 ###Skewb
-パーツに名前をつけたい
+#Corners
+URF:0 UFL:500 URB:500 ULB:0
+RFD:500 FDL:0 RDB:0 DLB:250
+Others:0
+
+#Ctr
+U:100 R:70 F:70 L:50 B:0 D:0
+Others:0
 
 ###FTO
-パーツに名前をつけたい
+#Corners
+U:1000 R:700 F:700 L:500 B:0 D:0
+Others:0
+
+#Edges
+UF:20 UR:20 UL:20 UB:20
+FR:50 FL:50 BR:40 BL:40
+DF:10 DR:10 DL:10 DB:10
+Others:0
+
+#CtrA
+URF@F:550 URF@U:525 URF@R:500
+ULB@B:200 ULB@U:200 ULB@L:200
+DLF@F:100 DLF@D:200 DLF@L:200
+DRB@B:100 DRB@D:100 DRB@R:100
+Others:0
+
+#CtrB
+UFL@F:0 UFL@U:0 UFL@L:0
+UBR@B:0 UBR@U:0 UBR@R:0
+DFR@F:0 DFR@D:0 DFR@R:0
+DBL@B:0 DBL@D:0 DBL@L:0
+Others:0
 
 ###CTO
-パーツに名前をつけたい
+#Corners
+U:1000 R:700 F:700 L:500 B:0 D:0
+Others:0
+
+#Edges
+UF:20 UR:20 UL:20 UB:20
+FR:50 FL:50 BR:40 BL:40
+DF:10 DR:10 DL:10 DB:10
+Others:0
+
+#Ctr
+U:100 R:70 F:70 L:50 B:0 D:0
+Others:0
 
 
 各mypermsに対して「myperms_point」を設定したい。
